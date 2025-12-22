@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
+{% block content %}
+<div x-data="sectionPage()" @close-panel.window="panelOpen = false" x-cloak>
+
+    <!-- Tabs -->
+    <div class="flex border-b mb-4">
+        <button
+            :class="{ 'border-b-2 border-blue-500 font-bold': activeTab === 'details' }"
+            class="px-4 py-2"
+            @click="activeTab = 'details'">
+            Details
+        </button>
+        <button
+            :class="{ 'border-b-2 border-blue-500 font-bold': activeTab === 'history' }"
+            class="px-4 py-2"
+            @click="activeTab = 'history'">
+            History
+        </button>
+    </div>
+
+    <!-- Details Tab -->
+    <div x-show="activeTab === 'details'" class="flex flex-col md:flex-row gap-6">
+
+        <!-- Left Column: Slots / Members -->
+        <div class="flex-1 space-y-6">
+            <!-- Slotted Members -->
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Slots / Members</h3>
+                <table class="min-w-full border-collapse">
+                    <thead>
+                    <tr class="bg-base-surface-dark">
+                        <th class="px-4 py-2 text-left">Role</th>
+                        <th class="px-4 py-2 text-left">Member</th>
+                        <th class="px-4 py-2 text-left">Colour</th>
+                        {% if can_manage %}
+                        <th class="px-4 py-2 text-left">Order</th>
+                        {% endif %}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for slot in sectionSlots.values %}
+                    <tr class="border-base-border">
+                        <td class="px-4 py-2">
+                            <button class="hover:underline font-semibold"
+                                    @click="openSlot('{{ slot.id }}')">
+                                {{ slot.name }}
+                            </button>
+                        </td>
+                        <td class="px-4 py-2">
+                            {% if slot.user_id %}
+                            <a href="{% url 'user_profile' slot.user_id %}" class="hover:underline">
+                                {{ slot.user_name }}
+                            </a>
+                            {% else %}
+                            <span class="text-gray-500 italic">Empty</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2
+                            {% if slot.colour == 'Red' %} text-red-600
+                            {% elif slot.colour == 'Blue' %} text-blue-600
+                            {% elif slot.colour == 'Green' %} text-green-600
+                            {% elif slot.colour == 'Gold' %} text-yellow-600
+                            {% else %} text-gray-500
+                            {% endif %}">
+                            {{ slot.colour|default:"—" }}
+                        </td>
+                        {% if can_manage %}
+                        <td class="px-2 py-2 flex space-x-1">
+                            <a href="{% url 'orbat_section_slot-move-up' section_name=section.name slot_id=slot.id %}"
+                               class="px-1 py-1 text-sm">⬆️</a>
+                            <a href="{% url 'orbat_section_slot-move-down' section_name=section.name slot_id=slot.id %}"
+                               class="px-1 py-1 text-sm">⬇️</a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+
+                {% if perms.orbat.manage_section and sectionSlots|length < section.max_size %}
+                <div class="mt-3">
+                    <button class="px-4 py-2 bg-green-600 text-white rounded"
+                            @click="openSlot(null)">
+                        + Add Slot
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Unslotted Members -->
+            {% if has_unallocated_members %}
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-2">Unallocated Members</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {% for member in members.values %}
+                        {% if not member.is_assigned %}
+                        <div class="p-4 bg-base-surface-dark shadow rounded">
+                            <a href="{% url 'user_profile' member.id%}">{{ member.name }}</a>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Column: Section Info & Buttons -->
+        {% if request.user.is_authenticated %}
+        <div class="w-full md:w-1/3 space-y-4">
+            <!-- Section image -->
+            {% if section.image %}
+            <img src="{{ section.image.url }}" alt="{{ section.name }}" class="rounded w-full">
+            {% endif %}
+
+            <!-- Description -->
+            <p class="text-base-text">{{ section.description }}</p>
+
+            <!-- Buttons -->
+            <div class="space-y-2">
+
+                <button @click="panelOpen = true; panelMode = 'loa'"
+                        class="w-full bg-yellow-500 text-white px-4 py-2 rounded">
+                    LOA
+                </button>
+
+                <button @click="panelOpen = true; panelMode = 'leave'"
+                        class="w-full bg-red-500 text-white px-4 py-2 rounded">
+                    Leave Section
+                </button>
+                <button @click="panelOpen = true; panelMode = 'join'" class="w-full bg-green-500 text-white px-4 py-2 rounded">Request to Join</button>
+
+                <a href="/orbat/management/{{ section.name }}" class="block bg-blue-500 text-white px-4 py-2 rounded text-center">Management</a>
+
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- History Tab -->
+    {% load timeline_tags %}
+    <div x-show="activeTab === 'history'" class="mt-4" x-data="{ loaded: false }"
+     x-init="$watch('activeTab', value => { if(value==='history'){ loaded=true } })">
+
+    <template x-if="loaded">
+        <div id="timeline-container">
+            {% render_timeline section=section %}
+        </div>
+    </template>
+</div>
+
+    <!-- Slide panel outside of tab content -->
+    {% include 'partials/section_slide_panel.html' %}
+
+</div>
+
+{{ section.id|json_script:"section-id" }}
+{{ members_json|json_script:"members" }}
+{{ sectionSlots|json_script:"section-slots" }}
+{{ roles|json_script:"roles" }}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    window.sectionPage = function() {
+        return {
+            activeTab: 'details',
+            panelOpen: false,
+            panelMode: null,
+            panelPayload: null,
+
+            sectionId: JSON.parse(document.getElementById("section-id").textContent),
+            members: JSON.parse(document.getElementById("members").textContent),
+            sectionSlots: JSON.parse(document.getElementById("section-slots").textContent),
+            roles: JSON.parse(document.getElementById("roles").textContent),
+
+            // ---------- Roles Form ----------
+            slotForm: {
+                slot: { id: null, name: '', colour: '', member: '', description: '', rank:null, roles: []},
+                newRoleId: null,
+
+                get allRoles() {
+                    return Object.values(this.parent.roles).filter(Boolean);
+                },
+
+                get nonRankRoles() {
+                    return this.slot.roles
+                        .map(roleId => this.parent.roles[roleId])
+                        .filter(r => r && !r.is_rank);
+                },
+
+                get availableRoles() {
+                    return this.allRoles.filter(r => {
+                        // If the slot already has a rank, hide other ranks
+                        if (this.slot.rank && r.is_rank) return false;
+
+                        // Exclude roles already assigned to the slot
+                        return !this.slot.roles.includes(r.id);
+                    });
+                },
+
+                addRole() {
+                    if (!this.newRoleId) return;
+                    const role = this.parent.roles[this.newRoleId];
+                    if (!role) return;
+
+                    if (role.is_rank) {
+                        // Replace existing rank
+                        this.slot.rank = this.newRoleId;
+                    } else {
+                        this.slot.roles.push(this.newRoleId);
+                    }
+
+                    this.newRoleId = null;
+                },
+
+                removeRole(idx) {
+                    // Get the non-rank role at the clicked index
+                    const role = this.nonRankRoles[idx];
+                    if (!role) return;
+
+                    // Remove it from slot.roles
+                    this.slot.roles = this.slot.roles.filter(rid => rid !== role.id);
+                },
+
+                removeRank() {
+                    if (!this.slot.rank) return;
+                    this.slot.rank = null;
+                },
+
+                moveUp(idx) {
+                    const roles = this.nonRankRoles;
+                    if (idx > 0) [roles[idx-1], roles[idx]] = [roles[idx], roles[idx-1]];
+                    this.slot.roles = this.rank ? [this.rank.id, ...roles.map(r => r.id)] : roles.map(r => r.id);
+                },
+
+                moveDown(idx) {
+                    const roles = this.nonRankRoles;
+                    if (idx < roles.length-1) [roles[idx+1], roles[idx]] = [roles[idx], roles[idx+1]];
+                    this.slot.roles = this.rank ? [this.rank.id, ...roles.map(r => r.id)] : roles.map(r => r.id);
+                },
+
+
+                resetSlot() {
+                    this.roles = [];
+                    this.newInlineRole = '';
+                },
+
+                loadSlot(slotId) {
+                    if (!slotId) {
+                        this.slot = { id: null, name: '', colour: '', member: '', description: '', rank: null, roles: [] };
+                    } else {
+                        const slot = this.parent.sectionSlots[slotId];
+                        if (slot) {
+                            // shallow copy to make reactive
+                            const roles = slot.roles || [];
+
+                            // find a rank role if present
+                            const rankRoleId = roles.find(rid => this.parent.roles[rid]?.is_rank);
+
+                            // filter out the rank from roles
+                            const nonRankRoles = roles.filter(rid => rid !== rankRoleId);
+
+                            this.slot = {
+                                ...slot,
+                                rank: rankRoleId ? this.parent.roles[rankRoleId] : null,
+                                roles: nonRankRoles
+                            };
+                        }
+                    }
+                },
+
+                saveSlot() {
+                    (async () => {
+                        const csrfToken = getCsrfToken();
+                        if (!this.slot.name || this.slot.name.trim() === '') {
+                            alert("Role name is required.");
+                            return;
+                        }
+
+                        const url = this.slot.id ? `/api/orbat/section/${sectionId}/slot/${this.role.id}/` : `/api/orbat/section/${sectionId}/slot/`;
+                        const method = this.slot.id ? 'PUT' : 'POST';
+
+                        try {
+
+                            const resp = await fetch(url, {
+                                method: method,
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken // make sure you pass the CSRF token
+                                },
+                                body: JSON.stringify(this.slot)
+                            });
+
+                            if (resp.ok) {
+                                console.log("Role saved");
+
+                                return true;
+
+                            } else if (resp.status === 400) {
+                                const errors = await resp.json();
+                                console.error("Validation errors:", errors);
+                            } else {
+                                console.error("Failed to save role:", resp.status, resp.statusText);
+                            }
+                        } catch (err) {
+                            console.error("Error saving role:", err);
+                        }
+                    })();
+                },
+                deleteSlot() {
+                    (async () => {
+                        try {
+                            const csrfToken = getCsrfToken();
+                            const resp = await fetch(`/api/orbat/section/${sectionId}/slot/${this.role.id}/`, {
+                                method: 'DELETE',
+                                headers: { 'X-CSRFToken': csrfToken }
+                            });
+
+                            if (resp.ok) {
+                                console.log("Role deleted");
+                                this.$dispatch('close-panel'); // Close the slide panel
+                                // Optionally trigger HTMX refresh or remove from list
+                            } else {
+                                console.error("Failed to delete role:", resp.status, resp.statusText);
+                            }
+                        } catch (err) {
+                            console.error("Error deleting role:", err);
+                        }
+                    })();
+                },
+            },
+
+            // ---------- LOA Form ----------
+            loaForm: { /* your LOA reactive fields and methods */ },
+
+            // ---------- Join Form ----------
+            joinForm: { /* your Join reactive fields and methods */ },
+
+            // ---------- Leave Form ----------
+            leaveForm: { /* your Leave reactive fields and methods */ },
+
+            // ---------- Management Form ----------
+            manageForm: { /* your Management reactive fields and methods */ },
+
+            // ---------- Panel Methods ----------
+            openSlot(slotId) {
+                this.slotForm.loadSlot(slotId);
+                this.panelMode = 'slots';
+                this.panelPayload = slotId;
+                this.panelOpen = true;
+            },
+            openLOA() { this.panelOpen=true; this.panelMode='loa'; /* load data if needed */ },
+            openJoin() { this.panelOpen=true; this.panelMode='join'; /* load data */ },
+            openLeave() { this.panelOpen=true; this.panelMode='leave'; /* load data */ },
+            openManage() { this.panelOpen=true; this.panelMode='manage'; /* load data */ },
+
+            init() {
+                this.slotForm.members = this.members; // optional, duplicates members
+                this.slotForm.parent = this;
+            }
+        }
+    }
+</script>
+{% endblock %}

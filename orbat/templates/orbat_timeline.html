@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% load timeline_tags %}
+    <div id="timeline-container" data-url="{% url 'orbat_timeline' %}">
+    {% render_orbat_timeline %}
+        </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const userSelect = document.getElementById('timeline-user-filter');
+    const sectionSelect = document.getElementById('timeline-section-filter');
+    const dateButtons = document.querySelectorAll('.timeline-range-buttons button');
+    const showAllButton = document.getElementById('timeline-showall-button');
+    if (showAllButton) {
+        showAllButton.addEventListener('click', () => {
+            const params = new URLSearchParams(window.location.search);
+
+            // clear user & section filters
+            params.delete('timeline_user');
+            params.delete('timeline_section');
+
+            // keep the active date range if set
+            const activeButton = document.querySelector('.timeline-range-buttons button.active');
+            if (activeButton) {
+                params.set('timeline_range', activeButton.dataset.startDate);
+            }
+
+            window.location.href = `${window.location.pathname}?${params.toString()}`;
+        });
+    }
+
+    function redirectWithParams(extraParams = {}) {
+        const params = new URLSearchParams(window.location.search);
+
+        // Always include range if one is active
+        const activeButton = document.querySelector('.timeline-range-buttons button.active');
+        if (activeButton) {
+            params.set('timeline_range', activeButton.dataset.startDate);
+        }
+
+        // Add/replace based on extra params
+        Object.entries(extraParams).forEach(([key, value]) => {
+            if (value) {
+                params.set(key, value);
+            } else {
+                params.delete(key);
+            }
+        });
+
+        // Redirect with full reload
+        window.location.href = `${window.location.pathname}?${params.toString()}`;
+    }
+
+    if (userSelect) {
+        userSelect.addEventListener('change', () => {
+            redirectWithParams({
+                timeline_user: userSelect.value,
+                timeline_section: null // clear section if user is selected
+            });
+        });
+    }
+
+    if (sectionSelect) {
+        sectionSelect.addEventListener('change', () => {
+            redirectWithParams({
+                timeline_section: sectionSelect.value,
+                timeline_user: null // clear user if section is selected
+            });
+        });
+    }
+
+    dateButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            dateButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // Update only the range, keep user/section as-is
+            redirectWithParams({});
+        });
+    });
+});
+</script>
+{% endblock %}

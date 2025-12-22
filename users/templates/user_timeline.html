@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% load timeline_tags %}
+
+{% render_timeline user_qs=user_profile %}
+
+{% endblock %}

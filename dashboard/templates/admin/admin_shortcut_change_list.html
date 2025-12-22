@@ -1,0 +1,51 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+<div class="p-4">
+  <h1 class="text-xl font-bold mb-4">Manage Shortcuts</h1>
+
+  <div x-data="shortcutManager({{ cl.result_list|json_script:'shortcuts-data' }})" class="space-y-2">
+    <template x-for="(shortcut, index) in shortcuts" :key="shortcut.id">
+      <div class="flex items-center space-x-2 bg-gray-100 p-2 rounded">
+        <button @click="moveUp(index)" :disabled="index===0" class="px-2 py-1 bg-gray-300 rounded">↑</button>
+        <button @click="moveDown(index)" :disabled="index===shortcuts.length-1" class="px-2 py-1 bg-gray-300 rounded">↓</button>
+        <input type="text" x-model="shortcut.name" class="border px-2 py-1 rounded flex-1">
+        <input type="text" x-model="shortcut.url" class="border px-2 py-1 rounded flex-1">
+        <button @click="save(shortcut)" class="px-3 py-1 bg-blue-500 text-white rounded">Save</button>
+      </div>
+    </template>
+  </div>
+</div>
+
+<script>
+function shortcutManager() {
+    let initialShortcuts = JSON.parse(document.getElementById('shortcuts-data').textContent);
+    return {
+        shortcuts: initialShortcuts,
+        moveUp(index) {
+            if (index > 0) [this.shortcuts[index-1], this.shortcuts[index]] = [this.shortcuts[index], this.shortcuts[index-1]];
+            this.updateOrder();
+        },
+        moveDown(index) {
+            if (index < this.shortcuts.length-1) [this.shortcuts[index+1], this.shortcuts[index]] = [this.shortcuts[index], this.shortcuts[index+1]];
+            this.updateOrder();
+        },
+        updateOrder() {
+            this.shortcuts.forEach((s,i)=>s.order=i+1);
+        },
+        save(shortcut) {
+            fetch(`/admin/api/navshortcut/${shortcut.id}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(shortcut)
+            }).then(resp => {
+                if(!resp.ok) console.error('Failed', shortcut);
+            })
+        }
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div x-data="trainingMatrix({
+      qualifications: [{% for q in qualifications %}{ id: {{ q.id }}, name: '{{ q.name }}' },{% endfor %}],
+      users: [
+      {% for user in users %}
+        {
+          id: '{{ user.id }}',
+          username: '{{ user.username }}',
+          qualifications: {{ user.qualifications|safe }}
+        },
+      {% endfor %}
+    ],
+      currentSection: '{{ current_section_id }}'
+    })" class="overflow-auto max-w-full bg-base-bg text-base-text">
+
+  <!-- Filters -->
+  <div class="flex flex-wrap items-center space-x-4 mb-4">
+    <!-- Section filter -->
+    <form method="get" class="flex items-center space-x-2">
+      <label for="section" class="font-bold text-base-text">Section:</label>
+      <select id="section" name="section"
+              onchange="window.location.href='?section=' + this.value"
+              class="border rounded px-2 py-1 bg-base-surface text-base-text border-base-border">
+        <option value="" {% if not current_section_id %}selected{% endif %}>All</option>
+        <option value="unassigned" {% if current_section_id == 'unassigned' %}selected{% endif %}>Unassigned</option>
+        {% for sec in sections %}
+          <option value="{{ sec.id }}" {% if sec.id == current_section_id %}selected{% endif %}>
+            {{ sec.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </form>
+
+    <!-- Qualification filters -->
+    <div class="relative inline-block text-left">
+      <button
+        @click="open = !open"
+        class="px-3 py-2 bg-base-surface border border-base-border rounded hover:bg-base-accent hover:text-white"
+      >
+        Filter Qualifications
+      </button>
+      <div
+        x-show="open"
+        @click.away="open = false"
+        class="absolute left-0 mt-2 w-56 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded shadow-lg p-2 z-50"
+      >
+        <template x-for="qual in qualifications" :key="qual.id">
+          <label class="flex items-center space-x-2 py-1 text-gray-800 dark:text-gray-200">
+            <input type="checkbox" x-model.number="selectedQualifications" :value="qual.id" class="form-checkbox">
+            <span x-text="qual.name"></span>
+          </label>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scrollable table container -->
+  <div class="overflow-auto border rounded-lg max-w-full max-h-[80vh] border-base-border">
+    <table class="table-auto border-collapse w-max min-w-full">
+      <thead class="sticky top-0 bg-base-surface z-10">
+        <tr>
+          <!-- Sticky Player header -->
+          <th class="border p-2 cursor-pointer bg-base-surface text-base-text z-30 sticky left-0"
+              @click="sort('player')">
+            Player <span x-text="sortColumn === 'player' ? (sortAsc ? '▲' : '▼') : ''"></span>
+          </th>
+          <template x-for="qual in qualifications" :key="qual.id">
+            <th class="border p-2 text-center cursor-pointer bg-base-surface text-base-text z-20"
+                x-show="selectedQualifications.includes(qual.id)"
+                @click="sort(qual.id)">
+              <span x-text="qual.name"></span>
+              <span x-text="sortColumn === qual.id ? (sortAsc ? '▲' : '▼') : ''"></span>
+            </th>
+          </template>
+        </tr>
+      </thead>
+
+      <tbody>
+        <template x-for="user in sortedUsers()" :key="user.id">
+          <tr class="bg-base-bg even:bg-base-surface">
+            <!-- Sticky Player cell -->
+            <td class="border p-2 whitespace-nowrap sticky left-0 bg-base-bg text-base-text z-20">
+              <a :href="`/profile/${user.id}/training/`" target="_blank" class="hover:underline" x-text="user.username"></a>
+            </td>
+            <template x-for="qual in qualifications" :key="qual.id">
+              <td class="border p-2 text-center text-base-text" x-show="selectedQualifications.includes(qual.id)">
+                <span x-text="user.qualifications.includes(qual.id) ? '✅' : '❌'"></span>
+              </td>
+            </template>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+{% endblock %}
+
+{% block extra_scripts %}
+
+  <!-- Alpine.js logic -->
+  <script>
+    function trainingMatrix({ qualifications, users, currentSection }) {
+      return {
+        qualifications,
+        users,
+        selectedQualifications: qualifications.map(q => q.id),
+        open: false,
+        sortColumn: 'player',
+        sortAsc: true,
+
+        sort(col) {
+          if (this.sortColumn === col) {
+            this.sortAsc = !this.sortAsc;
+          } else {
+            this.sortColumn = col;
+            this.sortAsc = true;
+          }
+        },
+
+        sortedUsers() {
+          return [...this.users].sort((a, b) => {
+            if (this.sortColumn === 'player') {
+              return this.sortAsc
+                ? a.username.localeCompare(b.username)
+                : b.username.localeCompare(a.username);
+            } else {
+              const qualId = this.sortColumn;
+              const aTick = a.qualifications.includes(qualId) ? 1 : 0;
+              const bTick = b.qualifications.includes(qualId) ? 1 : 0;
+              if (bTick !== aTick) return this.sortAsc ? bTick - aTick : aTick - bTick;
+              return this.sortAsc
+                ? a.username.localeCompare(b.username)
+                : b.username.localeCompare(a.username);
+            }
+          });
+        }
+      }
+    }
+  </script>
+
+{% endblock %}

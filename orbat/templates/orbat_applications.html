@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="space-y-8">
+
+    <!-- Unit Applications -->
+    {% if unit_application_perms %}
+    <h2 class="text-xl font-semibold mb-4">Unit Applications</h2>
+    {% if unit_applications %}
+    <div>
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {% for applicant in unit_applications %}
+              <div class="rounded-2xl bg-base-surface p-6 shadow-md border border-base-border">
+                <div class="mb-2 text-base-text font-medium">
+                  {{ applicant.external_account.username }}
+                </div>
+                <div class="mb-2 text-base-text font-medium">
+                  {{ applicant.get_status_display }}
+                </div>
+                <div class="text-sm text-base-muted mb-4">
+                  Submitted {{ applicant.date|date:"M j, Y" }}
+                </div>
+                <a href="{% url 'orbat_applications_onboarding' applicant.id %}"
+                   class="inline-block rounded-lg bg-base-accent px-4 py-2 text-white text-sm font-medium hover:opacity-90">
+                  Start Onboarding
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <div class="rounded-lg bg-base-surface-dark p-4 text-base-muted text-center">
+          No pending unit applications
+        </div>
+      {% endif %}
+    {% endif %}
+
+    <!-- Section Applications -->
+    {% if section_application_perms %}
+    <h2 class="text-xl font-semibold mb-4">Section Applications</h2>
+    {% if section_applications %}
+    <div>
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {% for applicant in section_applications %}
+              <div class="rounded-2xl bg-base-surface p-6 shadow-md border border-base-border">
+                <div class="mb-2 text-base-text font-medium">
+                  {{ applicant.user }}
+                </div>
+                <div class="text-sm text-base-muted mb-4">
+                  Submitted {{ applicant.date|date:"M j, Y" }}
+                </div>
+                <a href="{% url 'orbat_overview' %}"
+                   class="inline-block rounded-lg bg-base-accent px-4 py-2 text-white text-sm font-medium hover:opacity-90">
+                  Go to Onboarding
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <div class="rounded-lg bg-base-surface-dark p-4 text-base-muted text-center">
+          No pending section applications
+        </div>
+      {% endif %}
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,17 @@
+{% for member in members %}
+    <tr>
+        <td class="px-4 p-2"><input type="checkbox" name="selected" value="{{ member.id }}"></td>
+        <td class="px-4 p-2">{{ member.rank }}</td>
+        <td class="px-4 p-2"><a href="{% url 'user_profile' member.id %}" class="hover:underline">{{ member.display_name }}</a></td>
+        <td class="px-4 p-2">
+            {% if member.section_name %}
+                <a href="{% url 'orbat_section_detail' member.section_name %}" class="hover:underline">{{ member.section_name }}</a>
+            {% endif %}
+        </td>
+        <td class="px-4 p-2">{{ member.get_status_display }}</td>
+    </tr>
+{% empty %}
+    <tr>
+        <td colspan="4" class="px-4 p-4 text-center text-base-muted">No members found.</td>
+    </tr>
+{% endfor %}

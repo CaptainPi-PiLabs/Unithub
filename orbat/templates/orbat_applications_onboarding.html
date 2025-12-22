@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
+{% block content %}
+<div x-data="onboardingPage()">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  {% if focused_application %}
+  <!-- Focused Application -->
+  <div class="lg:col-span-2 rounded-2xl bg-base-surface p-6 shadow-md border border-base-border">
+    <h2 class="text-xl font-semibold mb-4">Application Details</h2>
+
+    <div class="space-y-4">
+      <div>
+        <div>
+          <p><b>Discord Name:</b> {{ focused_application.external_account.username }}</p>
+        </div>
+        <div class="text-sm text-base-muted">
+          Submitted {{ focused_application.date|date:"M j, Y" }}
+        </div>
+      </div>
+      <div>
+      {% if focused_application.user %}
+          <p><b>User:</b> {{ focused_application.user.display_name }}</p>
+          <button type="submit"
+            class="rounded-lg bg-green-600 px-4 py-2 text-white text-sm font-medium hover:opacity-90" @click="openUser()">
+            Edit User
+          </button>
+      {% else %}
+          <button type="submit"
+            class="rounded-lg bg-green-600 px-4 py-2 text-white text-sm font-medium hover:opacity-90" @click="openUser()">
+            Create User
+          </button>
+      {% endif %}
+      </div>
+      <div>
+        <h3 class="font-semibold">Contact History</h3>
+        <p class="text-sm text-base-muted">
+          <!-- Example: who has reached out -->
+          {{ focused_application.reached_out }}
+        </p>
+        <h3 class="font-semibold">Planned Event</h3>
+        <p class="text-sm text-base-muted">
+          {{ focused_application.event|default:"No event planned" }}
+        </p>
+      </div>
+
+      <div class="flex gap-3 mt-6">
+
+        <form method="post" action="">
+          {% csrf_token %}
+          <button type="submit"
+            class="rounded-lg bg-red-600 px-4 py-2 text-white text-sm font-medium hover:opacity-90">
+            Deny Application
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- All Applications -->
+  <div class="rounded-2xl bg-base-surface p-6 shadow-md border border-base-border">
+    <h2 class="text-xl font-semibold mb-4">All Pending Applications</h2>
+    <form method="post" action="">
+      {% csrf_token %}
+      <div class="space-y-3">
+        {% for app in other_applications %}
+          <label class="flex items-center justify-between rounded-lg border border-base-border p-3">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" name="selected_apps" value="{{ app.id }}"
+                     class="h-4 w-4 rounded border-base-border text-base-accent focus:ring-base-accent">
+              <div>
+                <div class="font-medium text-base-text">{{ app.external_account.username }}</div>
+                <div class="text-sm text-base-muted">{{ app.get_status_display }}</div>
+              </div>
+            </div>
+            <a href="{% url 'orbat_applications_onboarding' app.id %}"
+               class="px-3 py-1.5 text-sm bg-base-accent text-white rounded hover:bg-base-accent/80">
+                Focus
+            </a>
+          </label>
+        {% empty %}
+          <div class="text-sm text-base-muted">No applications</div>
+        {% endfor %}
+      </div>
+
+      <div class="mt-4">
+        <button type="submit"
+          class="w-full rounded-lg bg-base-accent px-4 py-2 text-white text-sm font-medium hover:opacity-90">
+          Bulk Action
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+    {% include 'partials/onboarding_slide_panel.html' %}
+</div>
+
+{{ slide_json|json_script:"slideFormData" }}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+window.onboardingPage = function() {
+    return {
+        panelOpen: false,
+        panelMode: null,
+
+        slideFormData: JSON.parse(document.getElementById("slideFormData").textContent),
+
+        userForm: {
+            app_id: '',
+            user_id: '',
+            username: '',
+            teamspeak_id: '',
+            over18: false,
+
+            loadUser() {
+                if (this.parent.slideFormData) {
+                    this.app_id = this.parent.slideFormData.id;
+                    this.user_id = this.parent.slideFormData.user_id || null;
+                    this.username = this.parent.slideFormData.username || '';
+                    this.teamspeak_id = this.parent.slideFormData.teamspeak_id || '';
+                    this.over18 = this.parent.slideFormData.over_18 || false;
+                }
+            },
+
+            createUser() {
+                if (!this.username) return alert("Name is required to create a user.");
+
+                const payload = new URLSearchParams();
+                payload.append('name', this.username);
+                if (this.teamspeak_id) payload.append('teamspeak_id', this.teamspeak_id);
+                payload.append('over18', this.over18);
+
+                fetch(`/orbat/applications/onboarding/${this.app_id || ''}/usermanager/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: payload.toString()
+                });
+            },
+
+            updateUser() {
+                const payload = new URLSearchParams();
+                if (this.username) payload.append('name', this.username);
+                if (this.teamspeak_id) payload.append('teamspeak_id', this.teamspeak_id);
+                payload.append('over18', this.over18);
+                console.log(payload.toString())
+
+                fetch(`/orbat/applications/onboarding/${this.app_id}/usermanager/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: payload.toString()
+                }).then(res => {
+                    if (res.ok) location.reload();
+                });
+            },
+
+            deleteUser() {
+                if (!this.user_id) return;
+                if (!confirm('Are you sure you want to delete this user?')) return;
+
+                fetch(`/orbat/applications/onboarding/${this.app_id}/usermanager/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+            }
+        },
+
+        denyForm: {
+            reason: '',
+            submit() { /* similar POST logic */ },
+        },
+
+        openUser() {
+            this.userForm.loadUser();
+            this.panelOpen = true;
+            this.panelMode = 'user';
+        },
+
+        openDeny() {
+            this.panelOpen = true;
+            this.panelMode = 'deny';
+        },
+
+        init() {
+            this.userForm.parent = this;
+        }
+
+    }
+}
+</script>
+{% endblock %}

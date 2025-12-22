@@ -1,0 +1,28 @@
+{% extends "admin/change_form.html" %}
+
+{% block after_related_objects %}
+<h3>Section Assignments</h3>
+<table class="admin-table">
+    {% for assignment in original.sectionassignment_set.all %}
+        {% if not assignment.end_date %}
+        <tr>
+            <td>{{ assignment.user.display_name }}</td>
+            <td>
+                <a class="button" href="{% url 'admin:orbat_section-remove-assignment' original.id assignment.user.id %}">
+                    Remove
+                </a>
+            </td>
+        </tr>
+        {% endif %}
+    {% endfor %}
+</table>
+
+{% if active_assignment_count < section.max_size %}
+    <p>
+        <a class="button" href="{% url 'admin:orbat_section-add-assignment' section.id %}">
+            Add user to section
+        </a>
+    </p>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,313 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="{{ theme }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}{% if page_title %} - {{ page_title }}{% endif %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'base-bg': 'var(--color-bg)',
+              'base-surface': 'var(--color-surface)',
+              'base-surface-dark': 'var(--color-surface-dark)',
+              'base-border': 'var(--color-border)',
+              'base-text': 'var(--color-text)',
+              'base-accent': 'var(--color-accent)',
+              'base-muted': 'var(--color-muted)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+        .theme-light {
+          --color-bg: #ffffff;
+          --color-surface: #f9fafb;
+          --color-surface-dark: #e5e7eb;
+          --color-border: #e5e7eb;
+          --color-text: #111827;
+          --color-accent: #2563eb;
+          --color-muted: #6b7280;
+        }
+        .theme-dark {
+          --color-bg: #111827;
+          --color-surface: #1f2937;
+          --color-surface-dark: #374151;
+          --color-border: #374151;
+          --color-text: #f9fafb;
+          --color-accent: #3b82f6;
+          --color-muted: #9ca3af;
+        }
+    </style>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+
+    {% block extra_head %}
+    <!-- Extra <meta> or <link> tags go here -->
+    {% endblock %}
+</head>
+<body class="bg-base-surface text-base-text">
+<div x-data="{ mobileOpen: false }">
+    <!-- ================= Navbar/Header ================= -->
+    <header class="bg-base-surface shadow-md fixed w-full z-50">
+      <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+
+        <!-- Left: Mobile hamburger + Logo -->
+        <div class="flex items-center space-x-2">
+          <button @click="mobileOpen = !mobileOpen" class="md:hidden focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </button>
+          <a href="{% url 'dashboard-home' %}" class="font-bold text-xl">UnitHub</a>
+        </div>
+
+        <!-- Right: Desktop nav links + shortcuts + profile -->
+        <div class="hidden md:flex items-center space-x-4">
+
+          <!-- Nav links -->
+          {% for link in nav_links %}
+            <a href="{{ link.url }}"
+               class="hover:underline {% if request.path == link.url %}font-bold{% endif %}">
+              {{ link.name }}
+            </a>
+          {% endfor %}
+
+          <!-- Shortcuts Dropdown -->
+          {% if nav_shortcuts %}
+          <div x-data="{ open: false }" class="relative">
+            <button @click="open = !open" class="flex items-center space-x-1 focus:outline-none">
+              <span>Shortcuts</span>
+              <svg class="w-4 h-4 transition-transform duration-200"
+                   :class="{ 'rotate-180': open }"
+                   fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 011.14.976l-4 4.696a.75.75 0 01-1.14 0l-4-4.696a.75.75 0 01.02-1.06z"
+                      clip-rule="evenodd"/>
+              </svg>
+            </button>
+
+            <div x-cloak x-show="open" @click.away="open = false"
+                 class="absolute right-0 mt-2 w-40 bg-base-surface text-base-text border border-base-border rounded shadow-lg">
+              {% for link in nav_shortcuts %}
+              <a href="{{ link.url }}" target="_blank"
+                 class="block px-4 py-2 hover:bg-base-accent hover:text-white">
+                {{ link.name }}
+              </a>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Profile Dropdown -->
+          <div x-cloak x-data="{ open: false }" class="relative">
+            {% if user.is_authenticated %}
+            <button @click="open = !open" class="flex items-center space-x-1 focus:outline-none">
+              <span>{{ user.display_name }}</span>
+              <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': open }"
+                   fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 11.584l3.71-4.354a.75.75 0 011.14.976l-4 4.696a.75.75 0 01-1.14 0l-4-4.696a.75.75 0 01.02-1.06z"
+                      clip-rule="evenodd"/>
+              </svg>
+            </button>
+
+            <div x-show="open" @click.away="open = false"
+                 class="absolute right-0 mt-2 w-40 bg-base-surface text-base-text border border-base-border rounded shadow-lg">
+              <a href="/profile/" class="block px-4 py-2 hover:bg-base-accent hover:text-white">Profile</a>
+              {% if user.is_staff %}
+              <a href="/admin/" target="_blank" class="block px-4 py-2 hover:bg-base-accent hover:text-white">Admin</a>
+              {% endif %}
+              <a href="/logout/" class="block px-4 py-2 hover:bg-base-accent hover:text-white">Logout</a>
+            </div>
+            {% else %}
+              {% if request.path != "/login/" %}
+              <a href="/login/"
+                 class="px-4 py-2 bg-base-accent text-white rounded hover:opacity-90">Login</a>
+              {% endif %}
+            {% endif %}
+          </div>
+            {% if user.is_authenticated %}
+            <div>
+            <button type="button"
+                    onclick="window.location.href='{% url 'toggle_theme' %}'"
+                    class="p-2 rounded hover:bg-base-surface"
+                    title="Toggle theme">
+               {% if request.user.theme == "theme-dark" %}
+                   <!-- Sun icon for switching back to light -->
+                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                         viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="5" />
+                      <line x1="12" y1="1" x2="12" y2="4" />
+                      <line x1="12" y1="20" x2="12" y2="23" />
+                      <line x1="1" y1="12" x2="4" y2="12" />
+                      <line x1="20" y1="12" x2="23" y2="12" />
+                      <line x1="4.22" y1="4.22" x2="6.34" y2="6.34" />
+                      <line x1="17.66" y1="17.66" x2="19.78" y2="19.78" />
+                      <line x1="4.22" y1="19.78" x2="6.34" y2="17.66" />
+                      <line x1="17.66" y1="6.34" x2="19.78" y2="4.22" />
+                    </svg>
+               {% else %}
+                   <!-- Moon icon for switching to dark -->
+                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor"
+                        viewBox="0 0 20 20">
+                     <path d="M17.293 13.293A8 8 0 116.707 2.707a8.001 8.001 0 0010.586 10.586z" />
+                   </svg>
+               {% endif %}
+            </button>
+            </div>
+{% endif %}
+        </div>
+      </div>
+    </header>
+
+    <!-- ================= Mobile Sidebar ================= -->
+    <div :class="{ '-translate-x-full': !mobileOpen, 'translate-x-0': mobileOpen }"
+         class="md:hidden fixed top-0 left-0 h-full w-64 bg-base-surface text-base-text shadow-lg transform transition-transform z-40">
+      <div class="p-4 mt-16 space-y-2">
+        {% for link in nav_links %}
+          <a href="{{ link.url }}"
+             class="block py-2 px-2 hover:bg-base-accent hover:text-white rounded">
+            {{ link.name }}
+          </a>
+        {% endfor %}
+
+        {% if nav_shortcuts %}
+          <hr class="my-2 border-base-border">
+          {% for link in nav_shortcuts %}
+            <a href="{{ link.url }}"
+               class="block py-2 px-2 hover:bg-base-accent hover:text-white rounded">
+              {{ link.name }}
+            </a>
+          {% endfor %}
+        {% endif %}
+          <hr class="my-2 border-base-border">
+        {% if user.is_authenticated %}
+          <a href="/toggle-theme"
+             class="block py-2 px-2 rounded hover:bg-base-accent hover:text-white ">
+            Switch Theme
+          </a>
+          <a href="/profile/" class="block py-2 px-2 hover:bg-base-accent hover:text-white rounded">Profile</a>
+          {% if user.is_staff %}
+            <a href="/admin/" class="block py-2 px-2 hover:bg-base-accent hover:text-white rounded">Admin</a>
+          {% endif %}
+          <a href="/logout/" class="block py-2 px-2 hover:bg-base-accent hover:text-white rounded">Logout</a>
+        {% else %}
+          {% if request.path != "/login/" %}
+          <a href="/login/"
+             class="block py-2 px-2 bg-base-accent text-white rounded text-center hover:opacity-90">Login</a>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+</div>
+    <!-- ================= Messages ================= -->
+    <div class="container mx-auto px-4 pt-24">
+        {% if messages %}
+            <div class="space-y-2">
+                {% for message in messages %}
+                    <div class="p-3 rounded shadow
+                                {% if message.tags == 'success' %}bg-green-100 text-green-800
+                                {% elif message.tags == 'error' %}bg-red-100 text-red-800
+                                {% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-blue-100 text-blue-800{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- ================= Breadcrumbs ================= -->
+    <div class="container mx-auto px-4 mt-4">
+        {% if breadcrumbs %}
+            <nav class="text-base-muted text-sm flex flex-wrap items-center mb-4">
+                {% for crumb in breadcrumbs %}
+                    {% if crumb.url %}
+                        <a href="{{ crumb.url }}" class="hover:underline">{{ crumb.name }}</a>
+                        {% if not forloop.last %}
+                            <span class="mx-1">→</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="font-semibold">{{ crumb.name }}</span>
+                    {% endif %}
+                {% endfor %}
+            </nav>
+        {% endif %}
+    </div>
+
+    <!-- ================= Main Content ================= -->
+    <main class="container mx-auto px-4 py-4 flex flex-col md:flex-row">
+
+        <!-- Sidebar (optional) -->
+        {% if sidebar %}
+            <!-- Mobile Dropdown -->
+            <div class="block md:hidden mb-4">
+                <label for="sidebar-nav" class="sr-only">Navigation</label>
+                <select id="sidebar-nav" class="w-full p-2 border border-base-border rounded bg-base-surface text-base-text"
+                        onchange="if (this.value) window.location.href=this.value">
+                    {% for item in sidebar %}
+                        <option value="{{ item.path }}" {% if request.path == item.path %}selected{% endif %}>{{ item.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Desktop Sidebar -->
+
+            <aside class="hidden md:block w-1/6 md:mr-4 mb-4 md:mb-0">
+                <ul class="space-y-1">
+                    {% for item in sidebar %}
+                        <li><a href="{{ item.path }}" class="hover:underline {% if request.path == item.path %}font-bold{% endif %}">{{ item.name }}</a></li>
+                    {% endfor %}
+                </ul>
+            </aside>
+        {% endif %}
+
+        <!-- Main content -->
+        <section class="flex-1">
+            {% block content %}{% endblock %}
+        </section>
+    </main>
+
+    <!-- ================= Scripts ================= -->
+    <script>
+        // Mobile sidebar toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+        menuToggle.addEventListener('click', () => {
+            mobileMenu.classList.toggle('-translate-x-full');
+        });
+
+        // User dropdown toggle
+        const btn = document.getElementById('userMenuButton');
+        const menu = document.getElementById('userDropdown');
+        if (btn && menu) {
+            btn.addEventListener('click', () => {
+                menu.classList.toggle('hidden');
+            });
+        }
+    </script>
+
+    <script>
+        if (document.querySelector('meta[name="csrf-token"]')) {
+            function getCsrfToken() {
+                const meta = document.querySelector('meta[name="csrf-token"]');
+                return meta ? meta.content : '';
+            }
+        }
+    </script>
+
+    {% block extra_scripts %}
+    <!-- Page-specific scripts go here -->
+    {% endblock %}
+</body>
+</html>

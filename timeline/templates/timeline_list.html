@@ -1,0 +1,81 @@
+
+<div class="flex flex-col sm:flex-row sm:items-center sm:gap-4 mb-4">
+  {% if active_timeline_user or active_timeline_section %}
+    <div class="flex flex-col">
+      <label class="text-sm font-medium text-gray-700 mb-1">Filters</label>
+      <button
+        id="timeline-showall-button"
+        class="px-3 py-1 border rounded bg-white hover:bg-gray-100"
+        type="button">
+        Show All
+      </button>
+    </div>
+  {% else %}
+
+      {% if timeline_scope_users %}
+        <div class="flex flex-col">
+          <label for="timeline-user-filter" class="text-sm font-medium text-gray-700 mb-1">User</label>
+          <select id="timeline-user-filter" class="border rounded px-2 py-1">
+            <option value="">All Users</option>
+            {% for user in timeline_scope_users %}
+              <option value="{{ user.pk }}">{{ user.display_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+
+      {% if timeline_scope_sections %}
+        <div class="flex flex-col mt-2 sm:mt-0">
+          <label for="timeline-section-filter" class="text-sm font-medium text-gray-700 mb-1">Section</label>
+          <select id="timeline-section-filter" class="border rounded px-2 py-1">
+            <option value="">All Sections</option>
+            {% for section in timeline_scope_sections %}
+              <option value="{{ section.pk }}">{{ section.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+    {% endif %}
+  {% if timeline_scope_ranges %}
+    <div class="flex flex-col mt-2 sm:mt-0">
+      <label class="text-sm font-medium text-gray-700 mb-1">Date Range</label>
+      <div class="flex gap-2 flex-wrap">
+        {% for label, date in timeline_scope_ranges %}
+          <button type="button" data-start-date="{{ date }}" class="px-3 py-1 border rounded hover:bg-gray-100">
+            {{ label|capfirst }}
+          </button>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% if entries %}
+{% for date, entries in entries %}
+<div class="p-5 mb-4 bg-gray-50 rounded-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+    <time class="text-lg font-semibold text-gray-900 dark:text-white">{{ date|date:"F jS, Y" }}</time>
+    <ol class="mt-3 divide-y divide-gray-200 dark:divide-gray-700">
+        {% for entry in entries %}
+        <li>
+            <a href="#" class="block items-center p-3 sm:flex hover:bg-gray-100 dark:hover:bg-gray-700">
+                <div class="text-gray-600 dark:text-gray-400">
+                    <div class="text-base font-normal">
+                        <p>{{ entry }}</p>
+                        <p>
+                        {% if entry.section %}
+                            {{entry.section}}:
+                        {% endif %}
+                        {% if entry.snapshot_name %}
+                            {{ entry.snapshot_name }}
+                        {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ol>
+</div>
+{% endfor %}
+{% else %}
+    <p class="text-gray-500 italic">No events to display.</p>
+{% endif %}

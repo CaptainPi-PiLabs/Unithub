@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">ORBAT Management</h1>
+
+{% if sections %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {% for section in sections %}
+    <div class="p-4 bg-base-surface rounded shadow">
+        <h2 class="font-bold">{{ section.name }}</h2>
+        <p>Owner: {{ section.owner.display_name }}</p>
+        <a href="{% url 'orbat-section-management' section.name %}" class="text-blue-500 hover:underline mt-2 inline-block">Manage Section</a>
+    </div>
+    {% endfor %}
+    {% if show_create %}
+    <div class="p-4 bg-green-100 dark:bg-green-800 rounded shadow flex items-center justify-center">
+        <a href="{% url 'orbat-create-section' %}" class="font-bold text-green-700 dark:text-green-200 hover:underline">+ Create New Section</a>
+    </div>
+    {% endif %}
+</div>
+{% elif section %}
+<h2 class="text-xl font-bold mb-2">{{ section.name }}</h2>
+<p>Owner: {{ section.owner.display_name }}</p>
+<!-- Section management details here -->
+{% else %}
+<p>You do not have access to ORBAT management.</p>
+{% endif %}
+{% endblock %}

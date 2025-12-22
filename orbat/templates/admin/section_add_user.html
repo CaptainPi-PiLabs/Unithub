@@ -1,0 +1,14 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Add user to {{ section.name }}</h1>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="button">Add user to section</button>
+</form>
+
+<p>
+    <a href="{% url 'admin:orbat_section_change' section.id %}">Back to section</a>
+</p>
+{% endblock %}

@@ -1,0 +1,14 @@
+# Virtual environments
+venv/
+.venv/
+
+# Django
+db.sqlite3
+**/migrations/*
+!**/migrations/__init__.py
+
+# Environment variables
+.env
+
+# PyCharm / IntelliJ
+.idea/

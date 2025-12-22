@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="text-xl font-bold mb-4 text-base-text">Detachment 207</h1>
+
+<!-- Sections -->
+{% for platoon in platoon_groups %}
+    <div>
+        {% if platoon != "no_platoon" %}
+            <h2 class="text-xl font-bold mt-8 mb-4 text-base-text">{{ platoon.name }}</h2>
+        {% else %}
+            <h2 class="text-xl font-bold mt-8 mb-4 text-base-text">Ungrouped Sections</h2>
+        {% endif %}
+
+        <!-- Loop through sections belonging to this platoon -->
+        <div class="grid grid-cols-1 gap-4 max-w-xl">
+            {% for group in section_groups %}
+                {% if group.section.platoon == platoon or platoon == "no_platoon" and not group.section.platoon %}
+                    <div class="bg-base-surface shadow-md rounded-lg p-4 border border-base-border">
+                        <h3 class="text-lg font-semibold mb-2 text-base-text"><a href="/orbat/section/{{ group.section.name }}" class="hover:underline text-base-text">{{ group.section.name }}</a></h3>
+
+                        <table class="w-full table-fixed border border-base-border rounded-lg text-sm text-base-text">
+                            <thead>
+                                <tr class="bg-base-border">
+                                    <th class="w-1/3 px-3 py-2 text-left">Slot</th>
+                                    <th class="w-2/3 px-3 py-2 text-left">Member</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assignment in group.assignments %}
+                                    <tr class="border-t border-base-border hover:bg-base-accent/10 dark:hover:bg-base-accent/20">
+                                        <td class="px-3 py-2">
+                                            {% if assignment.sectionSlot %}
+                                                {{ assignment.sectionSlot }}
+                                            {% else %}
+                                                <span class="italic text-base-muted">—</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="px-3 py-2">
+                                            <a href="{% url 'user_profile' assignment.user.id %}" class="hover:underline text-base-text">
+                                                {{ assignment.user.get_ranked_name }}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+{% endfor %}
+
+
+<!-- Active Deltas -->
+{% if active_deltas %}
+<div class="mb-6">
+    <h2 class="font-semibold mt-8 mb-4 text-base-text">Active Delta</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {% for user in active_deltas %}
+            <div class="p-4 bg-base-surface shadow rounded border border-base-border">
+                <a href="{% url 'user_profile' user.id %}" class="text-base-text hover:underline">{{ user.get_ranked_name }}</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Delta Reserves -->
+{% if delta_reserves %}
+<div class="mb-4">
+    <h2 class="font-semibold mt-8 mb-4 text-base-text">Delta Reserves</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {% for user in delta_reserves %}
+            <div class="p-4 bg-base-surface dark:bg-gray-800 shadow rounded border border-base-border">
+                <a href="{% url 'user_profile' user.id %}" class="text-base-text hover:underline">{{ user.get_ranked_name }}</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Inactive / Retired -->
+{% if inactive_users %}
+<div class="mb-4">
+    <h2 class="font-semibold mb-4 text-base-text">Inactive / Retired</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {% for user in inactive_users %}
+            <div class="p-4 bg-base-surface dark:bg-gray-800 shadow rounded border border-base-border text-base-text">
+                {{ user.display_name }}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

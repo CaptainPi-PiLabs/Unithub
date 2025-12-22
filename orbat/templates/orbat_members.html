@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="mb-4 flex flex-wrap gap-2">
+    <select name="status" hx-get="." hx-target="#members-table" class="p-2 border border-base-border rounded bg-base-surface text-base-text">
+        <option value="">All Active</option>
+        <option value="inactive">Inactive</option>
+        <option value="prospective">Prospective</option>
+        <option value="delta_reserve">Delta Reserve</option>
+        <option value="active_delta">Active Delta</option>
+        <option value="loa">On LOA</option>
+        <option value="section_member">Section Member</option>
+    </select>
+
+</div>
+
+<div class="overflow-x-auto max-w-6xl mx-auto">
+    <table class="min-w-full border-collapse table-fixed">
+        <thead class="bg-base-surface-dark border-b border-base-border text-base-text">
+            <tr>
+                <th class="px-4 p-2 text-left w-12"><input type="checkbox" id="select-all"></th>
+                <th class="px-4 p-2 text-left w-24 cursor-pointer" hx-get="?sort=rank" hx-target="#members-table">Rank</th>
+                <th class="px-4 p-2 text-left w-24 cursor-pointer" hx-get="?sort=name" hx-target="#members-table">Name</th>
+                <th class="px-4 p-2 text-left w-24 cursor-pointer" hx-get="?sort=section" hx-target="#members-table">Section</th>
+                <th class="px-4 p-2 text-left w-24 cursor-pointer" hx-get="?sort=status" hx-target="#members-table">Status</th>
+            </tr>
+        </thead>
+        <tbody id="members-table" class="bg-base-surface text-base-text">
+            {% include "partials/members_table.html" %}
+        </tbody>
+    </table>
+</div>
+
+<div id="slide-panel"
+     class="hidden fixed right-0 top-0 w-80 md:w-96 h-full bg-white dark:bg-gray-900 shadow-lg overflow-y-auto z-50">
+  <div class="p-4 border-b">
+    <h2 class="font-semibold">Bulk Actions</h2>
+  </div>
+  <div id="bulk-content" class="p-4">
+    <!-- When checkboxes selected, populate here -->
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+
+<script>
+  function updateSlidePanel() {
+    const checkboxes = document.querySelectorAll(".member-checkbox:checked");
+    const panel = document.getElementById("slide-panel");
+
+    if (checkboxes.length > 0) {
+      panel.classList.remove("hidden");
+      // You could load bulk action form dynamically with HTMX
+      document.getElementById("bulk-content").innerHTML =
+        `<p>${checkboxes.length} members selected.</p>
+         <button class="mt-2 px-3 py-1 bg-blue-600 text-white rounded"
+                 hx-post="{% url 'bulk_user_action' %}"
+                 hx-include=".member-checkbox:checked"
+                 hx-target="#bulk-content">Run Action</button>`;
+    } else {
+      panel.classList.add("hidden");
+    }
+  }
+
+  document.querySelectorAll(".member-checkbox").forEach(cb => {
+    cb.addEventListener("change", updateSlidePanel);
+  });
+
+  // Select all
+  document.getElementById("select-all").addEventListener("change", function() {
+    document.querySelectorAll(".member-checkbox").forEach(cb => cb.checked = this.checked);
+    updateSlidePanel();
+  });
+</script>
+
+{% endblock %}

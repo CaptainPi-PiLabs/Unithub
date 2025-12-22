@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="space-y-4" x-data="{ openCert: null }">
+  {% for cert in training_data %}
+    <div class="border rounded-lg shadow-sm">
+
+      <!-- Header -->
+      <div class="flex justify-between items-center bg-base-bg p-3 cursor-pointer"
+           @click="openCert === {{ cert.id }} ? openCert = null : openCert = {{ cert.id }}">
+
+        <div class="flex items-center space-x-3">
+          <span class="font-semibold text-base-text">{{ cert.name }}</span>
+          <span>
+            {% if cert.passed %}
+              <span class="text-green-600 font-bold">✅</span>
+            {% else %}
+              <span class="text-red-600 font-bold">❌</span>
+            {% endif %}
+          </span>
+          <div class="text-sm text-gray-500">
+            {% if cert.first_passed %}
+              First: {{ cert.first_passed|date:"Y-m-d" }}
+            {% endif %}
+            {% if cert.latest_passed %}
+              | Latest: {{ cert.latest_passed|date:"Y-m-d" }}
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Management action -->
+        {% if can_manage_cert %}
+          <button class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm">
+            Manage
+          </button>
+        {% endif %}
+      </div>
+
+      <!-- Collapsible body -->
+      <div x-show="openCert === {{ cert.id }}" x-transition class="p-3 bg-base-surface border-t">
+        <ul class="space-y-2">
+          {% for criterion in cert.criteria %}
+            <li class="flex items-center space-x-2">
+              {% if criterion.completed %}
+                <span class="text-green-600">✅</span>
+              {% else %}
+                <span class="text-gray-400">❌</span>
+              {% endif %}
+              <span>{{ criterion.name }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+    </div>
+  {% endfor %}
+</div>
+
+
+{% endblock %}

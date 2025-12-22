@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ user_profile.display_name }}</h1>
+
+{% if is_own_profile %}
+    <p>This is your profile.</p>
+{% endif %}
+
+{% endblock %}
