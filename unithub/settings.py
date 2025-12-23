@@ -11,23 +11,30 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(BASE_DIR / ".env")
+env = environ.Env(
+    DEBUG=(bool, False),
+)
+
+environ.Env.read_env(BASE_DIR / ".env")
+
+environ.Env.read_env(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = env("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG = env.bool("DEBUG", default=False)
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
 
 # Application definition
@@ -72,12 +79,12 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
 ]
 
-DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", None)
-DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", None)
-DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", None)
+DISCORD_CLIENT_ID = env("DISCORD_CLIENT_ID", default=None)
+DISCORD_CLIENT_SECRET = env("DISCORD_CLIENT_SECRET", default=None)
+DISCORD_REDIRECT_URI = env("DISCORD_REDIRECT_URI", default=None)
 
-STEAM_API_KEY = os.getenv("STEAM_API_KEY", None)
-STEAM_REDIRECT_URI = os.getenv("STEAM_REDIRECT_URI", None)
+STEAM_API_KEY = env("STEAM_API_KEY", default=None)
+STEAM_REDIRECT_URI = env("STEAM_REDIRECT_URI", default=None)
 
 ROOT_URLCONF = 'unithub.urls'
 
@@ -103,45 +110,9 @@ WSGI_APPLICATION = 'unithub.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DB_ENGINE = os.getenv("DB_ENGINE", "sqlite").lower()
-
-if DB_ENGINE == "sqlite":
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / os.getenv("DB_NAME", "db.sqlite3"),
-        }
-    }
-
-elif DB_ENGINE in ("postgres", "postgresql"):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("DB_NAME"),
-            "USER": os.getenv("DB_USER"),
-            "PASSWORD": os.getenv("DB_PASSWORD"),
-            "HOST": os.getenv("DB_HOST", "localhost"),
-            "PORT": os.getenv("DB_PORT", "5432"),
-        }
-    }
-
-elif DB_ENGINE in ("mysql", "mariadb"):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.mysql",
-            "NAME": os.getenv("DB_NAME"),
-            "USER": os.getenv("DB_USER"),
-            "PASSWORD": os.getenv("DB_PASSWORD"),
-            "HOST": os.getenv("DB_HOST", "localhost"),
-            "PORT": os.getenv("DB_PORT", "3306"),
-            "OPTIONS": {
-                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
-        }
-    }
-
-else:
-    raise ValueError(f"Unsupported DB_ENGINE: {DB_ENGINE}")
+DATABASES = {
+    "default": env.db("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
+}
 
 
 # Password validation
