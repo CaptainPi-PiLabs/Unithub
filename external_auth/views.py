@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 import requests
 from django.shortcuts import render, redirect
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 
 from external_auth.backends import ExternalAccountBackend
@@ -44,6 +45,14 @@ class DiscordOAuthRedirectView(View):
     def get(self, request):
         if not getattr(settings, "DISCORD_CLIENT_ID", None):
             return redirect("login")  # OAuth not configured
+
+        next_url = request.GET.get("next")
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            request.session["oauth_next"] = next_url
 
         params = {
             "client_id": settings.DISCORD_CLIENT_ID,
@@ -112,5 +121,9 @@ class DiscordOAuthCallbackView(View):
         user.backend = "external_auth.backends.ExternalAccountBackend"
         login(request, user)
 
-        next_url = request.GET.get("next") or settings.LOGIN_REDIRECT_URL
+        next_url = (
+            request.GET.get("next")
+            or request.session.pop("oauth_next", None)
+            or settings.LOGIN_REDIRECT_URL
+        )
         return redirect(next_url)

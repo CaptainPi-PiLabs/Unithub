@@ -66,11 +66,13 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'core.middleware.AuthenticationRequiredMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 AUTH_USER_MODEL = "users.CustomUser"
+LOGIN_URL = "external_auth:discord_login"
 LOGIN_REDIRECT_URL = "dashboard-home"
 LOGOUT_REDIRECT_URL = "dashboard-home"
 
