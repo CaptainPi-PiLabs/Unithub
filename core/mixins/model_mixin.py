@@ -9,7 +9,8 @@ class OrderedModelMixin(models.Model):
         ordering = ["order"]
         abstract = True
 
-    def _get_ordering_scope(self):
+    @classmethod
+    def get_ordering_scope_fields(cls):
         """
         Determine the queryset scope for ordering.
         Priority:
@@ -18,27 +19,33 @@ class OrderedModelMixin(models.Model):
         3. None (global)
         """
 
-        qs = type(self).objects.all()
-        scope_fields = getattr(self, "_order_scope_fields", None)
+        if hasattr(cls, "_order_scope_fields"):
+            return cls._order_scope_fields
 
-        if not scope_fields:
-            unique_fields = getattr(self._meta, "unique_together", None)
-            if unique_fields:
-                for field_tuple in unique_fields:
-                    if "order" in field_tuple:
-                        scope_fields = [f for f in field_tuple if f != "order"]
-                        break
+        unique_fields = getattr(cls._meta, "unique_together", None)
+        if unique_fields:
+            for field_tuple in unique_fields:
+                if "order" in field_tuple:
+                    return [f for f in field_tuple if f != "order"]
+
+        return None
+
+    def get_ordering_queryset(self):
+        scope_fields = type(self).get_ordering_scope_fields()
+        qs = type(self).objects.all()
 
         if scope_fields:
-            filter_kwargs = {f: getattr(self, f) for f in scope_fields}
-            qs = qs.filter(**filter_kwargs)
+            missing = [f for f in scope_fields if getattr(self, f, None) is None]
+            if missing:
+                raise ValueError(f"Cannot determine ordering scope, missing fields: {missing}")
+            qs = qs.filter(**{f: getattr(self, f) for f in scope_fields})
 
-        return qs, scope_fields
+        return qs
 
     def save(self, *args, **kwargs):
         # Only assign order if this is a new object or order not set
         if not self.pk or not self.order:
-            qs, _ = self._get_ordering_scope()
+            qs = self.get_ordering_queryset()
             max_order = qs.aggregate(max_order=Max("order"))["max_order"] or 0
             self.order = max_order + 1
         super().save(*args, **kwargs)
@@ -50,8 +57,7 @@ class OrderedModelMixin(models.Model):
         then unique_together containing 'order', then globally.
         """
         qs = cls.objects.all().order_by("order", "id")
-        instance = cls()
-        _, scope_fields = instance._get_ordering_scope()
+        scope_fields = cls.get_ordering_scope_fields()
 
         if scope_fields:
             # Build a set of all unique combinations for this scope
@@ -76,7 +82,7 @@ class OrderedModelMixin(models.Model):
 
     # --- Core move logic ---
     def _move(self, up=True):
-        qs, _ = self._get_ordering_scope()
+        qs = self.get_ordering_queryset()
         current_order = self.order
 
         if up:
@@ -116,7 +122,7 @@ class OrderedModelMixin(models.Model):
         if self.order == target_position:
             return  # Already in position
 
-        qs, _ = self._get_ordering_scope()
+        qs = self.get_ordering_queryset()
 
         if target_position < self.order:
             # Moving up: increment orders for items in [target_position, current_order-1]
