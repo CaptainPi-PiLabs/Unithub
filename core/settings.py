@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "events",
     "external_auth",
     "orbat",
+    "permissions",
     "timeline",
     "training",
     "users",
