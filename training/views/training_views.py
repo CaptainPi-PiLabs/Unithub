@@ -73,8 +73,6 @@ class TrainingMatrixView(TrainingBaseView):
             for user in base_users
         ]
 
-        print(context["users"])
-
         context["sections"] = Section.objects.all().order_by("name")
         context["qualifications"] = Qualification.objects.filter(is_active=True).order_by("order")
 
@@ -94,8 +92,6 @@ class UserTrainingView(ProfileBaseView):
         # Prefetch user qualifications for efficiency
         user_quals = UserQualification.objects.filter(user=profile_user).select_related('qualification')
         user_qual_map = {uq.qualification_id: uq for uq in user_quals}
-
-        print(user_quals)
 
         training_data = []
 
@@ -142,6 +138,5 @@ class UserTrainingView(ProfileBaseView):
             })
 
         context["training_data"] = training_data
-        print(training_data)
         context["profile_user"] = profile_user
         return context

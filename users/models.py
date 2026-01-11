@@ -9,8 +9,6 @@ from django.utils import timezone
 from orbat.models import SectionAssignment, RoleSlotAssignment, SectionSlot, Section
 
 
-# Create your models here.
-
 class CustomUserManager(BaseUserManager):
     def create_user(self, display_name, username=None, email=None, password=None ,**extra_fields):
         email = self.normalize_email(email) if email else None

@@ -27,7 +27,6 @@ class SectionSlotAPI(BaseAPIView):
             "order": slot.order,
             "inline_roles": inline_roles
         }
-        print(data)
         return data
 
     def context_check(self, request, method, user, *args, **kwargs):
@@ -36,7 +35,6 @@ class SectionSlotAPI(BaseAPIView):
             return True
 
         section_id = kwargs.get("section_id")
-        print(section_id)
         if not section_id:
             return False
         section = get_object_or_404(Section, pk=section_id)
@@ -64,7 +62,6 @@ class SectionSlotAPI(BaseAPIView):
         return Response(self._serialize_slot(slot), status=status.HTTP_200_OK)
 
     def post(self, request, section_id, slot_id=None): # Create a new slot
-        print("Creating new section slot")
         if slot_id:
             return Response({"detail": "Use PUT to update existing slots."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -172,5 +169,4 @@ class SectionMembersAPI(BaseAPIView):
             }
             for a in active_assignments if a.user
         ]
-        # print(members)
         return Response(members)

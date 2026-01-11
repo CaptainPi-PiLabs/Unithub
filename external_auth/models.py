@@ -3,7 +3,6 @@ from django.db import models
 from core import settings
 
 
-# Create your models here.
 class ExternalAccount(models.Model):
 
     user = models.OneToOneField(
