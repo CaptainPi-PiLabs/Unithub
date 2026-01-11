@@ -19,6 +19,7 @@ from django.urls import path, include
 
 from core.views import Custom403View, Custom404View, Custom503View
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("orbat/", include("orbat.urls")),

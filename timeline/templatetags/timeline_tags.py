@@ -8,9 +8,9 @@ from django.utils import timezone
 from django.utils.html import format_html
 
 from timeline.models import TimelineEntry, TimelineTypes
-from timeline.utils import get_timeline_entries, get_recent_training_timeline, get_recent_orbat_timeline, \
-    build_timeline_context, group_timeline_entries, get_active_context, get_user_query, get_start_date_query, \
-    get_section_query
+from timeline.utils import get_timeline_entries, get_recent_training_timeline, build_timeline_context, \
+    group_timeline_entries, get_active_context, get_user_query, get_start_date_query, get_section_query
+
 
 register = template.Library()
 

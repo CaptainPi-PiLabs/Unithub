@@ -1,7 +1,4 @@
 from django.contrib import admin
-from django.db.models import Max
-from django.shortcuts import redirect, get_object_or_404
-from django.utils.html import format_html
 
 from dashboard.models import NavShortcut
 from core.mixins.admin_mixin import OrderedModelAdminMixin, OrderedAdminMixin

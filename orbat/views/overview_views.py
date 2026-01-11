@@ -1,7 +1,6 @@
 from collections import defaultdict
 
-from django.db.models import Q, Value, When, Case, F
-from django.db.models.functions import Coalesce
+from django.db.models import Q
 from django.shortcuts import render
 from django.utils import timezone
 

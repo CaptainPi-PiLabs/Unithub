@@ -2,6 +2,7 @@ from django.urls import path
 
 from orbat.views import *
 
+
 urlpatterns = [
     path("", ORBATOverviewView.as_view(), name="orbat_overview"),
     path("members/", ORBATMemberView.as_view(), name="orbat_members"),

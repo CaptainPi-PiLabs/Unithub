@@ -1,4 +1,3 @@
-import json
 from collections import Counter
 
 from orbat.models import RoleSlotAssignment, SectionSlot, Role, SectionAssignment, Section

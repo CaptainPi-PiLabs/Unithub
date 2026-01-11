@@ -1,7 +1,6 @@
 from django.contrib import admin
 
-from training.models import QualificationCriterion, Qualification, QualificationEvent, \
-    UserQualification
+from training.models import Qualification, UserQualification
 
 
 @admin.register(Qualification)

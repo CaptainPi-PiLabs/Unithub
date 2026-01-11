@@ -2,11 +2,9 @@ import json
 
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.serializers.json import DjangoJSONEncoder
-from django.shortcuts import get_object_or_404, render, redirect
-from django.views import View
+from django.shortcuts import redirect
 
-from orbat.models import get_section_on_date, SectionSlot, Section, SectionAssignment
+from orbat.models import Section
 from orbat.utils import get_section_slot_context
 from orbat.views import ORBATBaseView
 

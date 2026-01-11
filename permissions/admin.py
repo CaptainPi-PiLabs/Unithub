@@ -5,6 +5,7 @@ from django.utils.html import format_html
 
 from .models import PermissionGroup, PermissionGrant, PermissionGroupMembership
 
+
 for model in [Permission, Group]:
     try:
         admin.site.unregister(model)
