@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.contrib.auth import login
 import requests
-from django.shortcuts import render, redirect
+from django.shortcuts import redirect
 from django.views import View
 
 from external_auth.backends import ExternalAccountBackend

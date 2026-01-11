@@ -35,10 +35,11 @@ class OrderedModelMixin(models.Model):
         qs = type(self).objects.all()
 
         if scope_fields:
-            missing = [f for f in scope_fields if getattr(self, f, None) is None]
-            if missing:
-                raise ValueError(f"Cannot determine ordering scope, missing fields: {missing}")
-            qs = qs.filter(**{f: getattr(self, f) for f in scope_fields})
+            # Build filter allowing for nullable fields
+            filter_kwargs = {f: getattr(self, f) for f in scope_fields if getattr(self, f) is not None}
+
+            if filter_kwargs:
+                qs = qs.filter(**filter_kwargs)
 
         return qs
 

@@ -5,6 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from permissions.contrants import INHERITED_RULES, PERMISSIONS
 from permissions.models import PermissionGrant
 
+
 logger = logging.getLogger(__name__)
 
 def permission_matches(grant_permission, requested_permission):

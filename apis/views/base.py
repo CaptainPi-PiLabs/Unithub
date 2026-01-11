@@ -1,7 +1,5 @@
-from rest_framework import status
 from rest_framework.renderers import JSONRenderer
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework.exceptions import NotAuthenticated, PermissionDenied
 
 from apis.models import UserAPIKey, ServiceAPIKey
@@ -73,7 +71,6 @@ class BaseAPIView(APIView):
 
         if user:
             if not self.context_check(request, method, user, *args, **kwargs):
-                print("User is missing context permissions")
                 raise PermissionDenied("Insufficient permissions")
 
         # Attach key info to request for use in view

@@ -7,6 +7,7 @@ from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from permissions.models import PermissionGroupMembership, PermissionGroup
 from users.models import CustomUser
 
+
 class CustomUserCreationForm(forms.ModelForm):
     """Form for creating new users."""
     password1 = forms.CharField(label='Password', widget=forms.PasswordInput, required=False)

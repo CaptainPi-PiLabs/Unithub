@@ -6,6 +6,7 @@ from django.utils import timezone
 from events.models import Event, Campaign
 from events.views import EventBaseView
 
+
 class EventListView(EventBaseView):
     template_name = "events_upcoming.html"
     title = "Upcoming Events"

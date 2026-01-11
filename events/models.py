@@ -1,8 +1,8 @@
-
 from django.db import models
 
 from orbat.models import Section
 from core.mixins.model_mixin import OrderedModelMixin
+
 
 class Campaign(models.Model):
     name = models.CharField(max_length=100, unique=True)

@@ -1,6 +1,7 @@
 from django.core.exceptions import PermissionDenied
 from .services import user_has_permission
 
+
 class PermissionRequiredMixin:
     permission = None
     module = None

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from timeline.models import TimelineTypes, TimelineEntry
+from timeline.models import TimelineEntry
 
 
 # Register your models here.

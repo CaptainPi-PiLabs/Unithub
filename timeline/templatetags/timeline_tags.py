@@ -8,9 +8,9 @@ from django.utils import timezone
 from django.utils.html import format_html
 
 from timeline.models import TimelineEntry, TimelineTypes
-from timeline.utils import get_timeline_entries, get_recent_training_timeline, get_recent_orbat_timeline, \
-    build_timeline_context, group_timeline_entries, get_active_context, get_user_query, get_start_date_query, \
-    get_section_query
+from timeline.utils import get_timeline_entries, get_recent_training_timeline, build_timeline_context, \
+    group_timeline_entries, get_active_context, get_user_query, get_start_date_query, get_section_query
+
 
 register = template.Library()
 
@@ -58,10 +58,6 @@ def render_orbat_timeline(context, user_qs=None, section=None):
     default_date_range = None
     start_date_query = get_start_date_query(default_date_range, active_context["active_timeline_range"])
 
-    print(active_context["active_timeline_user"])
-    print(section_query)
-    print(start_date_query)
-
     entries = get_timeline_entries(
         user_qs=user_query,
         section=section_query,
@@ -79,7 +75,6 @@ def render_training_timeline(context, user_qs=None, section=None):
 
     active_context = get_active_context(context)
     active_user = active_context.get("active_timeline_user")
-    print(active_user)
     if active_user:
         User = get_user_model()
         active_user = User.objects.get(id=active_user)

@@ -1,4 +1,3 @@
-import json
 from collections import Counter
 
 from orbat.models import RoleSlotAssignment, SectionSlot, Role, SectionAssignment, Section
@@ -41,7 +40,6 @@ def get_section_slot_context(section):
     # --- Roles context ---
     roles_ctx = {}
     for role in all_roles:
-        print(role.name)
         if role.allowed_sections.exists() and not role.allowed_sections.contains(section):
             continue
         max_count = role.max_per_section

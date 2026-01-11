@@ -4,6 +4,7 @@ from django.urls import path, include
 from training.views import UserTrainingView
 from .views import *
 
+
 urlpatterns = [
     path("login/", CustomLoginView.as_view(), name="login"),
     path("logout/", logout_view, name="logout"),

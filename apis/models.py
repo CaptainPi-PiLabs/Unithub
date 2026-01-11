@@ -2,6 +2,7 @@ from django.db import models
 
 from core import settings
 
+
 class Permissions(models.TextChoices):
     ADD_USER = "add_user", "Add User"
     ADD_SECTION = "add_section", "Add Section"

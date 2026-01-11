@@ -1,7 +1,6 @@
 from collections import defaultdict
 
-from django.db.models import Q, Value, When, Case, F
-from django.db.models.functions import Coalesce
+from django.db.models import Q
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -97,12 +96,10 @@ class ORBATMemberView(ORBATBaseView):
 
         members = CustomUser.objects.all().order_by(order_field)
         context['members'] = members
-        print("Calling context for member view")
 
         return context
 
     def render_to_response(self, context, **response_kwargs):
         if self.request.headers.get("HX-Request") == "true":
-            print("Calling sub table for members")
             return render(self.request, "partials/members_table.html", context, **response_kwargs)
         return super().render_to_response(context, **response_kwargs)

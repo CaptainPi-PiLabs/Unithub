@@ -2,6 +2,7 @@ from django.urls import path
 
 from external_auth import views
 
+
 app_name = "external_auth"
 
 urlpatterns = [

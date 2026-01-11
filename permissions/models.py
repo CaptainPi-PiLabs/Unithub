@@ -6,7 +6,6 @@ from django.db import models
 from permissions.contrants import PERMISSIONS
 
 
-# Create your models here.
 class PermissionGroup(models.Model):
     name = models.CharField(max_length=100, unique=True)
 

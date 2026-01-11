@@ -2,6 +2,7 @@ from django.urls import path
 
 from events.views import *
 
+
 urlpatterns = [
     path("", EventListView.as_view(), name="event_list"),
     path("calendar/", EventCalendarView.as_view(), name="event_calendar"),

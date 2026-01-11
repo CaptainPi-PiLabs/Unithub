@@ -1,14 +1,14 @@
 from django.contrib import admin, messages
 from django.contrib.admin import SimpleListFilter
 from django.contrib.auth import get_user_model
-from django.forms import ModelForm, BaseInlineFormSet, ModelChoiceField, Form
+from django.forms import ModelForm, ModelChoiceField, Form
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import path, reverse
 from django.utils.html import format_html
-from django.utils.safestring import mark_safe
 
 from orbat.models import *
 from core.mixins.admin_mixin import OrderedModelAdminMixin, OrderedAdminMixin
+
 
 User = get_user_model()
 
