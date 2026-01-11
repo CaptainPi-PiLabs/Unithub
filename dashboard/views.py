@@ -1,6 +1,8 @@
+from core.decorators import allow_anonymous
 from core.views import UnitHubBaseView
 
 
+@allow_anonymous
 class DashboardView(UnitHubBaseView):
     template_name = 'dashboard.html'
 

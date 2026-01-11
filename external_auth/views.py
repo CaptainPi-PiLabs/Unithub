@@ -3,9 +3,11 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.contrib.auth import login
 import requests
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.shortcuts import redirect
 from django.views import View
 
+from core.decorators import allow_anonymous
 from external_auth.backends import ExternalAccountBackend
 from external_auth.models import DiscordAccount
 from core import settings
@@ -36,7 +38,7 @@ def get_discord_user(access_token):
     return resp.json()
 
 
-# Create your views here.
+@allow_anonymous
 class DiscordOAuthRedirectView(View):
     """
     Redirects user to Discord OAuth2 authorization page
@@ -44,6 +46,14 @@ class DiscordOAuthRedirectView(View):
     def get(self, request):
         if not getattr(settings, "DISCORD_CLIENT_ID", None):
             return redirect("login")  # OAuth not configured
+
+        next_url = request.GET.get("next")
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            request.session["oauth_next"] = next_url
 
         params = {
             "client_id": settings.DISCORD_CLIENT_ID,
@@ -54,6 +64,8 @@ class DiscordOAuthRedirectView(View):
         url = f"https://discord.com/api/oauth2/authorize?{urlencode(params)}"
         return redirect(url)
 
+
+@allow_anonymous
 class DiscordOAuthCallbackView(View):
     def get(self, request):
         code = request.GET.get("code")
@@ -112,5 +124,9 @@ class DiscordOAuthCallbackView(View):
         user.backend = "external_auth.backends.ExternalAccountBackend"
         login(request, user)
 
-        next_url = request.GET.get("next") or settings.LOGIN_REDIRECT_URL
+        next_url = (
+            request.GET.get("next")
+            or request.session.pop("oauth_next", None)
+            or settings.LOGIN_REDIRECT_URL
+        )
         return redirect(next_url)
