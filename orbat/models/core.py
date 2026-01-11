@@ -29,12 +29,6 @@ class Section(OrderedModelMixin, models.Model):
     def __str__(self):
         return self.name
 
-    def can_manage(self, user):
-        if not user or not user.is_authenticated:
-            return False
-        return user.is_staff or self.leader == user
-
-
 class Role(models.Model):
     name = models.CharField(max_length=50)
     shorthand = models.CharField(max_length=10)

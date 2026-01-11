@@ -10,7 +10,10 @@ class ORBATBaseView(UnitHubBaseView):
         user = self.request.user
 
         if user.is_authenticated:
-            context["show_management"] = user.is_staff or Section.objects.filter(leader=user).exists()
+            context["show_management"] = any(
+                user.has_permission("modify", module="orbat", scope=s)
+                for s in Section.objects.all()
+            ) or user.has_permission("modify", module="orbat", scope=None)
 
         context["sidebar"] = [
             {"name": "Overview", "path": "/orbat/"},

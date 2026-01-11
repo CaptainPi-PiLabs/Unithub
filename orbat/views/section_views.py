@@ -34,7 +34,8 @@ class ORBATSectionDetailView(ORBATBaseView):
             {"name": self.section_obj.name, "url": None},
         ]
         context["section"] = self.section_obj
-        context["can_manage"] = self.section_obj.can_manage(user)
+        if user.is_authenticated:
+            context["can_manage"] = user.has_permission("modify", module="orbat", scope=self.section_obj)
         section_context = get_section_slot_context(self.section_obj)
         context.update(section_context)
         return context
