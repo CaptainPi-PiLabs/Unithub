@@ -1,13 +1,28 @@
 from django.contrib.auth import logout
 from django.contrib.auth.views import LoginView
+from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.utils.http import urlencode
 
 from core import settings
 from core.decorators import allow_anonymous
 from core.views import UnitHubBaseView
 
+
+def get_enabled_auth_providers():
+    providers = []
+
+    if settings.AUTH_ENABLED_BUILTIN:
+        providers.append("builtin")
+
+    if settings.AUTH_ENABLED_DISCORD:
+        providers.append("discord")
+
+    if settings.AUTH_ENABLED_STEAM:
+        providers.append("steam")
+
+    return providers
 
 @allow_anonymous
 class CustomLoginView(UnitHubBaseView, LoginView):
@@ -17,12 +32,24 @@ class CustomLoginView(UnitHubBaseView, LoginView):
         if request.user.is_authenticated:
             return redirect(self.get_success_url())
 
-        if getattr(settings, 'DISCORD_CLIENT_ID', None):
+        providers = get_enabled_auth_providers()
+
+        if not settings.AUTH_ENABLED_BUILTIN and len(providers) == 1:
+            provider = providers[0]
+
             next_url = request.GET.get("next")
-            redirect_url = reverse_lazy("external_auth:discord_login")
+
+            if provider == "discord":
+                url = reverse("external_auth:discord_login")
+            elif provider == "steam":
+                url = reverse("external_auth:steam_login")
+            else:
+                raise ImproperlyConfigured("Invalid auth provider configuration")
+
             if next_url:
-                redirect_url = f"{redirect_url}?{urlencode({'next': next_url})}"
-            return redirect(redirect_url)
+                url = f"{url}?{urlencode({'next': next_url})}"
+
+            return redirect(url)
 
         return super().dispatch(request, *args, **kwargs)
 
@@ -32,27 +59,11 @@ class CustomLoginView(UnitHubBaseView, LoginView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['discord_login_enabled'] = bool(getattr(settings, 'DISCORD_CLIENT_ID', None))
-        context['discord_auth_url'] = (
-            f"https://discord.com/api/oauth2/authorize?"
-            f"client_id={settings.DISCORD_CLIENT_ID}&"
-            f"redirect_uri={settings.DISCORD_REDIRECT_URI}&"
-            f"response_type=code&"
-            f"scope=identify%20email%20guilds"
-        ) if context['discord_login_enabled'] else None
+        context['builtin_login_enabled'] = settings.AUTH_ENABLED_BUILTIN
+        context['discord_login_enabled'] = settings.AUTH_ENABLED_DISCORD
+        context['steam_login_enabled'] = settings.AUTH_ENABLED_STEAM
 
-        context['steam_login_enabled'] = bool(getattr(settings, 'STEAM_API_KEY', None))
-        context['steam_auth_url'] = (
-            f"https://steamcommunity.com/openid/login?"
-            f"openid.ns=http://specs.openid.net/auth/2.0&"
-            f"openid.mode=checkid_setup&"
-            f"openid.return_to={settings.STEAM_REDIRECT_URI}&"
-            f"openid.realm=https://yoursite.com&"
-            f"openid.identity=http://specs.openid.net/auth/2.0/identifier_select&"
-            f"openid.claimed_id=http://specs.openid.net/auth/2.0/identifier_select"
-        ) if context['steam_login_enabled'] else None
         return context
-
 
 def logout_view(request):
     logout(request)  # clears the session

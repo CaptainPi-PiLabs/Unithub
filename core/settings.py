@@ -91,6 +91,10 @@ DISCORD_REDIRECT_URI = env("DISCORD_REDIRECT_URI", default=None)
 STEAM_API_KEY = env("STEAM_API_KEY", default=None)
 STEAM_REDIRECT_URI = env("STEAM_REDIRECT_URI", default=None)
 
+AUTH_ENABLED_BUILTIN = env.bool("AUTH_ENABLED_BUILTIN", default=True)
+AUTH_ENABLED_DISCORD = env.bool("AUTH_ENABLED_DISCORD", default=DISCORD_CLIENT_ID is not None)
+AUTH_ENABLED_STEAM = env.bool("AUTH_ENABLED_STEAM", default=STEAM_API_KEY is not None)
+
 ROOT_URLCONF = 'core.urls'
 
 # TODO Finish off the WIP features to remove the dispatch checks from the base views and environment settings

@@ -44,8 +44,8 @@ class DiscordOAuthRedirectView(View):
     Redirects user to Discord OAuth2 authorization page
     """
     def get(self, request):
-        if not getattr(settings, "DISCORD_CLIENT_ID", None):
-            return redirect("login")  # OAuth not configured
+        if not settings.AUTH_ENABLED_DISCORD:
+            return redirect("login")
 
         next_url = request.GET.get("next")
         if next_url and url_has_allowed_host_and_scheme(
