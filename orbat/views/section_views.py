@@ -1,12 +1,13 @@
-import json
-
 from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import redirect
 
+from orbat.enums import OrbatActions
 from orbat.models import Section
 from orbat.utils import get_section_slot_context
 from orbat.views import ORBATBaseView
+from permissions.models import PermissionModule
+from permissions.engine import has_permission
 
 
 class ORBATSectionDetailView(ORBATBaseView):
@@ -32,8 +33,7 @@ class ORBATSectionDetailView(ORBATBaseView):
             {"name": self.section_obj.name, "url": None},
         ]
         context["section"] = self.section_obj
-        if user.is_authenticated:
-            context["can_manage"] = user.has_permission("modify", module="orbat", scope=self.section_obj)
+        context["can_manage"] = has_permission(user, PermissionModule.ORBAT, OrbatActions.MODIFY_SECTION, self.section_obj)
         section_context = get_section_slot_context(self.section_obj)
         context.update(section_context)
         return context
