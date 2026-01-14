@@ -3,10 +3,13 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import NotAuthenticated, PermissionDenied
 
 from apis.models import UserAPIKey, ServiceAPIKey
+from permissions.models import PermissionRule
+from permissions.engine import has_permission
 
 
 class BaseAPIView(APIView):
     renderer_classes = [JSONRenderer]
+    module = None
     required_permissions = {
         "GET": [],
     }
@@ -23,17 +26,21 @@ class BaseAPIView(APIView):
 
         return None
 
-    def _check_permissions_for_key(self, key, perms):
-        if not perms:
-            return True
+    def _check_permissions(self, subject, method, scope=None):
+        if not self.module:
+            return False
+        perms = self.required_permissions.get(method)
+        if perms is None:
+            raise PermissionDenied("Insufficient permissions")
 
-        for perm in perms:
-            if hasattr(key, "has_permission"):
-                if not key.has_permission(perm):
-                    return False
-            else:  # fallback to Django user
-                if not key.has_perm(perm):
-                    return False
+        for action in perms:
+            rule = PermissionRule.objects.get(
+                module=self.module,
+                action=action.value,
+            )
+
+            if not has_permission(subject, rule, scope=scope):
+                return False
         return True
 
     def context_check(self, request, method, user, *args, **kwargs):
@@ -43,9 +50,10 @@ class BaseAPIView(APIView):
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
-        method = request.method.upper()
 
+        method = request.method.upper()
         key = self._get_api_key()
+
         user = request.user if request.user.is_authenticated else None
         if not user and key and getattr(key, "user", None):
             user = key.user
@@ -54,24 +62,15 @@ class BaseAPIView(APIView):
         if not key and not user:
             raise NotAuthenticated()
 
-        if key:
-            if key.get_type() == "service" and key.allowed_ips:
-                client_ip = request.META.get("REMOTE_ADDR")
-                if not key.is_ip(client_ip):
-                    raise PermissionDenied("Insufficient permissions")
+        subject = key or user
 
-            perms = self.required_permissions.get(method)
-            if method == "GET" and perms is None:
-                perms = []
-            elif perms is None:
-                raise PermissionDenied("Insufficient permissions")
+        if isinstance(key, ServiceAPIKey) and key.allowed_ips:
+            client_ip = request.META.get("REMOTE_ADDR")
+            if not key.is_ip_allowed(client_ip):
+                raise PermissionDenied("IP not allowed")
 
-            if not self._check_permissions_for_key(key, perms):
-                raise PermissionDenied("Insufficient permissions")
-
-        if user:
-            if not self.context_check(request, method, user, *args, **kwargs):
-                raise PermissionDenied("Insufficient permissions")
+        if not self._check_permissions(subject, method):
+            raise PermissionDenied("Insufficient permissions")
 
         # Attach key info to request for use in view
         request.api_key = key

@@ -94,10 +94,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             return assignment.section
         return None
 
-    def has_permission(self, permission, module, scope=None):
-        from permissions.services import user_has_permission
-        return user_has_permission(self, permission, module, scope)
-
     def save(self, *args, **kwargs):
         if self.status == UserStatus.RETIRED:
             self.rank = None

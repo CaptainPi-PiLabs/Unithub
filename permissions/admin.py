@@ -1,4 +1,5 @@
 from django import forms
+from django.apps import apps
 from django.contrib import admin
 from django.contrib.auth.models import Permission, Group
 from django.utils.html import format_html
@@ -12,6 +13,10 @@ for model in [Permission, Group]:
     except admin.sites.NotRegistered:
         pass
 
+# -----------------------------
+# Inlines
+# -----------------------------
+
 class MembershipInline(admin.TabularInline):
     model = PermissionGroupMembership
     extra = 1
@@ -20,15 +25,14 @@ class MembershipInline(admin.TabularInline):
 # Form for PermissionGrant to handle object vs key
 class PermissionGrantForm(forms.ModelForm):
     class Meta:
-        model = PermissionGrant
+        model = apps.get_model("permissions", "PermissionGrant")
         fields = [
-            "group",
-            "permission",
-            "module",
+            "rule",
             "effect",
             "content_type",
             "object_id",
             "scope_key",
+            "group",
         ]
 
     def clean(self):
@@ -48,28 +52,54 @@ class PermissionGrantInline(admin.TabularInline):
     form = PermissionGrantForm
     extra = 1
     fields = (
-        "permission",
-        "module",
+        "rule",
         "effect",
         "content_type",
         "object_id",
         "scope_key",
     )
-    # autocomplete_fields = ["content_type"]  # optional, for easier selection
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Only show grants for this group
+        if hasattr(self, 'parent_object'):
+            return qs.filter(group=self.parent_object)
+        return qs
+
+    def get_formset(self, request, obj=None, **kwargs):
+        self.parent_object = obj  # save the parent group instance
+        return super().get_formset(request, obj, **kwargs)
 
 @admin.register(PermissionGrant)
 class PermissionGrantAdmin(admin.ModelAdmin):
     form = PermissionGrantForm
-    list_display = ("group", "permission", "module", "get_scope_name", "effect")
-    list_filter = ("module", "effect", "group")
-    search_fields = ("permission", "group__name", "scope_key")
+    list_display = ("subject_display", "rule", "module", "get_scope_name", "effect")
+    list_filter = ("rule__module", "effect", "group")
+    search_fields = ("rule__action", "group__name", "scope_key")
+
+    def module(self, obj):
+        return obj.rule.module
+    module.admin_order_field = "rule__module"
+
+    def subject_display(self, obj):
+        """Display the subject of the grant in a human-readable way."""
+        if obj.user:
+            return format_html('<strong>User:</strong> {}', obj.user)
+        if obj.group:
+            return format_html('<strong>Group:</strong> {}', obj.group)
+        if obj.user_api_key:
+            return format_html('<strong>User API Key:</strong> {}', obj.user_api_key.name)
+        if obj.service_api_key:
+            return format_html('<strong>Service API Key:</strong> {}', obj.service_api_key.name)
+        return "-"
+    subject_display.short_description = "Subject"
 
     def get_scope_name(self, obj):
-        if obj.content_object:
-            return str(obj.content_object)
-        elif obj.scope_key:
+        if obj.content_type and obj.object_id:
+            return str(obj.content_type.get_object_for_this_type(id=obj.object_id))
+        if obj.scope_key:
             return obj.scope_key
-        return "-"
+        return "Global"
     get_scope_name.short_description = "Scope"
 
 @admin.register(PermissionGroupMembership)

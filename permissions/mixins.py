@@ -1,5 +1,5 @@
 from django.core.exceptions import PermissionDenied
-from .services import user_has_permission
+from permissions.engine import has_permission
 
 
 class PermissionRequiredMixin:
@@ -9,6 +9,6 @@ class PermissionRequiredMixin:
 
     def dispatch(self, request, *args, **kwargs):
         scope = self.scope_getter(self) if self.scope_getter else None
-        if not user_has_permission(request.user, self.permission, self.module, scope):
+        if not has_permission(request.user, self.module, self.permission, scope):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)

@@ -3,11 +3,6 @@ from django.db import models
 from core import settings
 
 
-class Permissions(models.TextChoices):
-    ADD_USER = "add_user", "Add User"
-    ADD_SECTION = "add_section", "Add Section"
-    ASSIGN_SECTION = "assign_section", "Assign Section"
-
 class APIKeyBase(models.Model):
     key = models.CharField(max_length=64, unique=True, editable=False)
     name = models.CharField(max_length=64, help_text="Label for the key")
@@ -21,6 +16,10 @@ class APIKeyBase(models.Model):
         import secrets
         return secrets.token_hex(32)
 
+    def has_permission(self, module, action, scope=None):
+        from permissions.engine import has_permission
+        return has_permission(self, module, action, scope)
+
     def save(self, *args, **kwargs):
         if not self.key:
             self.key = self.generate_key()
@@ -31,11 +30,6 @@ class UserAPIKey(APIKeyBase):
 
     def is_ip_allowed(self, ip):
         return True
-
-    def has_permission(self, permission):
-        if self.user.is_staff:
-            return True
-        return False
 
     def get_type(self):
         return "user"
@@ -50,20 +44,5 @@ class ServiceAPIKey(APIKeyBase):
         allowed = [ip.strip() for ip in self.allowed_ips.split(",")]
         return ip in allowed
 
-    def has_permission(self, permission: str):
-        if isinstance(permission, Permissions):
-            permission = permission.value
-        return self.permissions.filter(name=permission).exists()
-
     def get_type(self):
         return "service"
-
-class KeyPermission(models.Model):
-    key = models.ForeignKey(ServiceAPIKey, on_delete=models.CASCADE, related_name="permissions")
-    name = models.CharField(max_length=50, choices=Permissions.choices)
-
-    class Meta:
-        unique_together = ("key", "name")
-
-    def __str__(self):
-        return f"{self.key.name} -> {self.name}"

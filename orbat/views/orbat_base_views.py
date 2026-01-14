@@ -1,5 +1,5 @@
-from orbat.models import Section
 from core.views.base import UnitHubBaseView
+from orbat.permission_helpers import can_manage_orbat
 
 
 class ORBATBaseView(UnitHubBaseView):
@@ -10,10 +10,7 @@ class ORBATBaseView(UnitHubBaseView):
         user = self.request.user
 
         if user.is_authenticated:
-            context["show_management"] = any(
-                user.has_permission("modify", module="orbat", scope=s)
-                for s in Section.objects.all()
-            ) or user.has_permission("modify", module="orbat", scope=None)
+            context["show_management"] = can_manage_orbat(user)
 
         context["sidebar"] = [
             {"name": "Overview", "path": "/orbat/"},
