@@ -1,7 +1,8 @@
-from orbat.views import ORBATBaseView
+from core.views import UnitHubListView
+from orbat.views import ORBATContextMixin
 
 
-class ORBATTimelineView(ORBATBaseView):
+class ORBATTimelineView(ORBATContextMixin, UnitHubListView):
     template_name = "orbat_timeline.html"
 
     def get_context_data(self, **kwargs):

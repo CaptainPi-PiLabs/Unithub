@@ -3,12 +3,13 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, get_object_or_404
 from django.utils.decorators import method_decorator
 
+from core.views import UnitHubTemplateView, UnitHubDetailView
 from orbat.models import Section, SectionSlot
-from orbat.views.orbat_base_views import ORBATBaseView
+from orbat.views import ORBATContextMixin
 
 
 @method_decorator(login_required, name="dispatch")
-class ORBATManagementOverviewView(ORBATBaseView):
+class ORBATManagementOverviewView(ORBATContextMixin, UnitHubTemplateView):
     template_name = "orbat/orbat_management_overview.html"
 
     def dispatch(self, request, *args, **kwargs):
@@ -36,7 +37,7 @@ class ORBATManagementOverviewView(ORBATBaseView):
         return context
 
 @method_decorator(login_required, name="dispatch")
-class ORBATSectionManagementView(ORBATBaseView):
+class ORBATSectionManagementView(ORBATContextMixin, UnitHubDetailView):
     template_name = "orbat/orbat_management_section.html"
 
     def dispatch(self, request, *args, **kwargs):

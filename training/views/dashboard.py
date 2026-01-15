@@ -1,14 +1,15 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 
+from core.views import UnitHubTemplateView
 from orbat.models import Section, SectionAssignment
-from users.views import ProfileBaseView
-from . import TrainingBaseView
+from users.views import ProfileContextMixin
+from . import TrainingContextMixin
 from users.backends import User
 from ..models import Qualification, QualificationTrainer, UserQualification
 
 
-class TrainingHomeView(TrainingBaseView):
+class TrainingHomeView(TrainingContextMixin, UnitHubTemplateView):
     template_name = "training_home.html"
 
     def get_context_data(self, **kwargs):
@@ -22,7 +23,7 @@ class TrainingHomeView(TrainingBaseView):
 
         return context
 
-class TrainingMatrixView(TrainingBaseView):
+class TrainingMatrixView(TrainingContextMixin, UnitHubTemplateView):
     template_name = "training_matrix.html"
 
     def get_context_data(self, **kwargs):
@@ -78,7 +79,7 @@ class TrainingMatrixView(TrainingBaseView):
 
         return context
 
-class UserTrainingView(ProfileBaseView):
+class UserTrainingView(ProfileContextMixin, UnitHubTemplateView):
     template_name = "training_user_overview.html"
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

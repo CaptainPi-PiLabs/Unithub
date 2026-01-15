@@ -4,12 +4,13 @@ from django.db.models import Q
 from django.shortcuts import render
 from django.utils import timezone
 
+from core.views import UnitHubTemplateView, UnitHubListView
 from orbat.models import SectionAssignment, Section, SectionSlot
-from orbat.views.orbat_base_views import ORBATBaseView
+from orbat.views import ORBATContextMixin
 from users.models import CustomUser, UserStatus
 
 
-class ORBATOverviewView(ORBATBaseView):
+class ORBATOverviewView(ORBATContextMixin, UnitHubTemplateView):
     template_name = "orbat_overview.html"
 
     def get_context_data(self, **kwargs):
@@ -76,16 +77,14 @@ class ORBATOverviewView(ORBATBaseView):
         return context
 
 class ORBATMemberView(ORBATBaseView):
+class ORBATMemberView(ORBATContextMixin, UnitHubListView):
+    model = CustomUser
     template_name = "orbat_members.html"
+    context_object_name = "members"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["breadcrumbs"] = [
-            {"name": "ORBAT", "url": 'orbat_overview'},
-            {"name": "Members", "url": None},
-        ]
-
+    def get_queryset(self):
         sort = self.request.GET.get("sort", "name")
+
         order_map = {
             "rank": "rank",
             "name": "display_name",
@@ -93,13 +92,24 @@ class ORBATMemberView(ORBATBaseView):
         }
 
         order_field = order_map.get(sort, "display_name")
+        return CustomUser.objects.all().order_by(order_field)
 
-        members = CustomUser.objects.all().order_by(order_field)
-        context['members'] = members
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context["breadcrumbs"] = [
+            {"name": "ORBAT", "url": "orbat_overview"},
+            {"name": "Members", "url": None},
+        ]
 
         return context
 
     def render_to_response(self, context, **response_kwargs):
         if self.request.headers.get("HX-Request") == "true":
-            return render(self.request, "partials/members_table.html", context, **response_kwargs)
+            return render(
+                self.request,
+                "partials/members_table.html",
+                context,
+                **response_kwargs,
+            )
         return super().render_to_response(context, **response_kwargs)

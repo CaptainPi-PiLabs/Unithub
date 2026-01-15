@@ -1,9 +1,9 @@
 from core.decorators import allow_anonymous
-from core.views import UnitHubBaseView
+from core.views import UnitHubTemplateView
 
 
 @allow_anonymous
-class DashboardView(UnitHubBaseView):
+class DashboardView(UnitHubTemplateView):
     template_name = 'dashboard.html'
 
     def get_context_data(self, **kwargs):

@@ -1,15 +1,16 @@
 from django.conf import settings
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView
 from django.contrib import messages
 
-class UnitHubBaseView(TemplateView):
-    title = "UnitHub"
+
+class UnitHubContextMixin:
+    title = "Unit Hub"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
-        context["show_management"] = user.is_authenticated and user.is_staff
+        context["theme"] = getattr(user, "theme", "theme-light")
 
         nav_links = [
             {"name": "Dashboard", "url": "/"},
@@ -18,22 +19,14 @@ class UnitHubBaseView(TemplateView):
             {"name": "Training", "url": "/training/"},
         ]
 
-        # TODO Remove once WIP has been finished
-        # Filter nav links based on settings
         if not getattr(settings, "ENABLE_EVENTS", False):
-            nav_links = [link for link in nav_links if link["name"] != "Events"]
-
+            nav_links = [l for l in nav_links if l["name"] != "Events"]
         if not getattr(settings, "ENABLE_TRAINING", False):
-            nav_links = [link for link in nav_links if link["name"] != "Training"]
+            nav_links = [l for l in nav_links if l["name"] != "Training"]
 
         context["nav_links"] = nav_links
-
-        # Default breadcrumbs (can be overridden in child views)
         context.setdefault("breadcrumbs", [])
-
-        context["title"] = self.title
-        # Theme can be set in session or user preference
-        context["theme"] = getattr(user, "theme", "theme-light")
+        context["title"] = getattr(self, "title", "UnitHub")
 
         return context
 
@@ -43,3 +36,18 @@ class UnitHubBaseView(TemplateView):
         Can be called from any view inheriting this base.
         """
         messages.add_message(self.request, level, message)
+
+class UnitHubTemplateView(UnitHubContextMixin, TemplateView):
+    pass
+
+class UnitHubListView(UnitHubContextMixin, ListView):
+    pass
+
+class UnitHubDetailView(UnitHubContextMixin, DetailView):
+    pass
+
+class UnitHubCreateView(UnitHubContextMixin, CreateView):
+    pass
+
+class UnitHubUpdateView(UnitHubContextMixin, UpdateView):
+    pass

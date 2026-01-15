@@ -4,8 +4,9 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.views import View
 
+from core.views import UnitHubTemplateView
 from orbat.models import UnitApplication, SectionApplication, Section
-from orbat.views import ORBATBaseView
+from orbat.views import ORBATContextMixin
 
 
 class ORBATApplicationLOA(View):
@@ -14,7 +15,7 @@ class ORBATApplicationLOA(View):
 class ORBATApplicationJoin(View):
     template_name = 'orbat_section_detail.html'
 
-class ORBATApplicationOverview(ORBATBaseView):
+class ORBATApplicationOverview(ORBATContextMixin, UnitHubTemplateView):
     template_name = 'orbat_applications.html'
 
     def get_context_data(self, **kwargs):
@@ -36,7 +37,7 @@ class ORBATApplicationOverview(ORBATBaseView):
 
         return context
 
-class UnitApplicationOnboarding(ORBATBaseView):
+class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
     template_name = 'orbat_applications_onboarding.html'
 
     def _get_application(self):

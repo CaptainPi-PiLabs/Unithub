@@ -1,45 +1,35 @@
-from django.contrib import messages
-from django.core.exceptions import ObjectDoesNotExist
-from django.shortcuts import redirect
-
+from core.views import UnitHubDetailView, UnitHubListView, UnitHubUpdateView
 from orbat.enums import OrbatActions
 from orbat.models import Section
 from orbat.utils import get_section_slot_context
-from orbat.views import ORBATBaseView
+from orbat.views import ORBATContextMixin
 from permissions.models import PermissionModule
 from permissions.engine import has_permission
 
 
-class ORBATSectionDetailView(ORBATBaseView):
+class ORBATSectionDetailView(ORBATContextMixin, UnitHubDetailView):
+    model = Section
     template_name = 'orbat_section_detail.html'
-
-    def dispatch(self, request, *args, **kwargs):
-        section_name = self.kwargs.get('section_name')
-        try:
-            self.section_obj = Section.objects.get(name=section_name)
-        except ObjectDoesNotExist:
-            messages.error(self.request, f'Section {section_name} not found')
-            return redirect("/orbat")
-
-        return super().dispatch(request, *args, **kwargs)
+    slug_field = 'name'
+    slug_url_kwarg = 'section_name'
+    context_object_name = 'section'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        section = self.object
         user = self.request.user
 
         context["breadcrumbs"] = [
             {"name": "ORBAT", "url": "/orbat/"},
             {"name": "Sections", "url": "/orbat/"},
-            {"name": self.section_obj.name, "url": None},
+            {"name": section.name, "url": None},
         ]
-        context["section"] = self.section_obj
-        context["can_manage"] = has_permission(user, PermissionModule.ORBAT, OrbatActions.MODIFY_SECTION, self.section_obj)
-        section_context = get_section_slot_context(self.section_obj)
-        context.update(section_context)
+        context["can_manage"] = has_permission(user, PermissionModule.ORBAT, OrbatActions.MODIFY_SECTION, section)
+        context.update(get_section_slot_context(section))
         return context
 
-class ORBATSectionHistoryView(ORBATBaseView):
+class ORBATSectionHistoryView(ORBATContextMixin, UnitHubListView):
     pass
 
-class ORBATSectionEditView(ORBATBaseView):
+class ORBATSectionEditView(ORBATContextMixin, UnitHubUpdateView):
     pass
