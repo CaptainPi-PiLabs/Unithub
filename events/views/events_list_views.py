@@ -3,11 +3,12 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from django.utils import timezone
 
+from core.views import UnitHubListView, UnitHubTemplateView
 from events.models import Event, Campaign
-from events.views import EventBaseView
+from events.views import EventContextMixin
 
 
-class EventListView(EventBaseView):
+class EventListView(EventContextMixin, UnitHubListView):
     template_name = "events_upcoming.html"
     title = "Upcoming Events"
 
@@ -24,7 +25,7 @@ class EventListView(EventBaseView):
 
         return context
 
-class EventCalendarView(EventBaseView):
+class EventCalendarView(EventContextMixin, UnitHubTemplateView):
     template_name = "event_calendar.html"
     title = "Event Calendar"
 
@@ -59,7 +60,7 @@ class EventCalendarView(EventBaseView):
 
         return context
 
-class CampaignListView(EventBaseView):
+class CampaignListView(EventContextMixin, UnitHubListView):
     template_name = "campaign_list.html"
     title = "Campaigns"
 

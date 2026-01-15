@@ -1,10 +1,9 @@
 from django.conf import settings
 
 from core.exceptions import WIPFeatureError
-from core.views import UnitHubBaseView
 
 
-class EventBaseView(UnitHubBaseView):
+class EventContextMixin:
     title = "Events"
 
     def dispatch(self, request, *args, **kwargs):
