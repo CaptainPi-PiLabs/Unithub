@@ -6,13 +6,21 @@ from core import settings
 class APIKeyBase(models.Model):
     key = models.CharField(max_length=64, unique=True, editable=False)
     name = models.CharField(max_length=64, help_text="Label for the key")
-    create_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    active = models.BooleanField(default=True)
     last_used_at = models.DateTimeField(null=True, blank=True)
+    last_used_ip = models.GenericIPAddressField(null=True, blank=True)
 
     class Meta:
         abstract = True
 
-    def generate_key(self):
+    @staticmethod
+    def hash_key(raw_key):
+        import hashlib
+        return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def generate_key():
         import secrets
         return secrets.token_hex(32)
 
@@ -22,8 +30,11 @@ class APIKeyBase(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.key:
-            self.key = self.generate_key()
+            raw_key = self.generate_key()
+            self.key = self.hash_key(raw_key)
+            self._raw_key = raw_key # Store if needed to return one time in a view
         super().save(*args, **kwargs)
+
 
 class UserAPIKey(APIKeyBase):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="api_key")

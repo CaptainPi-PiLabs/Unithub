@@ -25,6 +25,7 @@ class AuthenticationRequiredMiddleware(MiddlewareMixin):
         self.exempt_prefixes = [
             settings.STATIC_URL,
             settings.MEDIA_URL,
+            '/api/'
         ]
 
     def process_view(self, request, view_func, view_args, view_kwargs):
