@@ -1,10 +1,10 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
 
 from core.views import UnitHubTemplateView, UnitHubDetailView
-from orbat.models import Section, SectionSlot
+from orbat.models import Section
 from orbat.views import ORBATContextMixin
 
 
@@ -64,14 +64,3 @@ class ORBATSectionManagementView(ORBATContextMixin, UnitHubDetailView):
         ]
         context["section"] = self.section
         return context
-
-
-def slot_move_up(request, section_name, slot_id):
-    slot = get_object_or_404(SectionSlot, pk=slot_id)
-    slot.move_up()
-    return redirect(request.META.get('HTTP_REFERER', f'/orbat/section/{section_name}/management/'))
-
-def slot_move_down(request, section_name, slot_id):
-    slot = get_object_or_404(SectionSlot, pk=slot_id)
-    slot.move_down()
-    return redirect(request.META.get('HTTP_REFERER', f'/orbat/section/{section_name}/management/'))

@@ -1,6 +1,8 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
+from django.utils.text import slugify
 
 from external_auth.models import DiscordAccount
 from core.mixins.model_mixin import OrderedModelMixin
@@ -15,11 +17,12 @@ class Platoon(OrderedModelMixin, models.Model):
 
 class Section(OrderedModelMixin, models.Model):
     name = models.CharField(max_length=50, unique=True)
+    slug = models.SlugField(max_length=50, unique=True, blank=True)
     shorthand = models.CharField(max_length=10)
     description = models.TextField(blank=True)
     type = models.CharField(max_length=20)
     max_size = models.IntegerField()
-    platoon = models.ForeignKey(Platoon, null=True, blank=True, related_name='subsections', on_delete=models.SET_NULL)
+    platoon = models.ForeignKey(Platoon, null=True, blank=True, related_name='sections', on_delete=models.SET_NULL)
     leader = models.OneToOneField(settings.AUTH_USER_MODEL, null=True, blank=True, related_name='leads_section', on_delete=models.SET_NULL)
 
     _order_scope_fields = ["platoon"]
@@ -28,6 +31,20 @@ class Section(OrderedModelMixin, models.Model):
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        super().clean()
+        self.slug = slugify(self.name)
+
+        qs = Section.objects.exclude(pk=self.pk).filter(slug=self.slug)
+        if qs.exists():
+            raise ValidationError({
+                "name": "This name conflicts with an existing section."
+            })
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 class Role(models.Model):
     name = models.CharField(max_length=50)

@@ -1,12 +1,15 @@
 from collections import defaultdict
 
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from django.shortcuts import render
 from django.utils import timezone
 
 from core.views import UnitHubTemplateView, UnitHubListView
-from orbat.models import SectionAssignment, Section, SectionSlot
+from orbat.enums import OrbatActions
+from orbat.models import SectionAssignment, Section, SectionSlot, Platoon
 from orbat.views import ORBATContextMixin
+from permissions.engine import has_orbat_permission, has_any_permission
+from permissions.models import PermissionModule
 from users.models import CustomUser, UserStatus
 
 
@@ -76,7 +79,43 @@ class ORBATOverviewView(ORBATContextMixin, UnitHubTemplateView):
 
         return context
 
-class ORBATMemberView(ORBATBaseView):
+class ORBATSectionListView(ORBATContextMixin, UnitHubTemplateView):
+    template_name = "orbat_section_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        platoons = (
+            Platoon.objects
+            .order_by("order")
+            .prefetch_related(
+                Prefetch(
+                    "sections",
+                    queryset=Section.objects.order_by("order"),
+                )
+            )
+        )
+
+        unassigned_sections = Section.objects.filter(
+            platoon__isnull=True
+        ).order_by("order")
+
+        context.update({
+            "platoons": platoons,
+            "unassigned_sections": unassigned_sections,
+            "can_create_platoon": has_orbat_permission(user, OrbatActions.CREATE_PLATOON),
+            "can_create_section": has_any_permission(user, PermissionModule.ORBAT, OrbatActions.CREATE_SECTION),
+        })
+
+        context["breadcrumbs"] = [
+            {"name": "ORBAT", "url": "orbat_overview"},
+            {"name": "Sections", "url": None},
+        ]
+
+        return context
+
+
 class ORBATMemberView(ORBATContextMixin, UnitHubListView):
     model = CustomUser
     template_name = "orbat_members.html"
