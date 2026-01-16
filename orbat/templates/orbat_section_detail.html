@@ -46,8 +46,9 @@
                     {% for slot in sectionSlots.values %}
                     <tr class="border-base-border">
                         <td class="px-4 py-2">
-                            <button class="hover:underline font-semibold"
-                                    @click="openSlot('{{ slot.id }}')">
+                            <button
+                                class="hover:underline font-semibold"
+                                @click="openSlot(Number('{{ slot.id }}'))">
                                 {{ slot.name }}
                             </button>
                         </td>
@@ -71,9 +72,9 @@
                         </td>
                         {% if can_manage %}
                         <td class="px-2 py-2 flex space-x-1">
-                            <a href="{% url 'orbat_section_slot-move-up' section_name=section.name slot_id=slot.id %}"
+                            <a href="{% url 'orbat_section_slot-move-up' section.slug %}?slot_id=${activeSlot.id}`"
                                class="px-1 py-1 text-sm">⬆️</a>
-                            <a href="{% url 'orbat_section_slot-move-down' section_name=section.name slot_id=slot.id %}"
+                            <a href="{% url 'orbat_section_slot-move-down' section.slug %}?slot_id=${activeSlot.id}`"
                                class="px-1 py-1 text-sm">⬇️</a>
                         </td>
                         {% endif %}
@@ -122,21 +123,33 @@
 
             <!-- Buttons -->
             <div class="space-y-2">
+                {% if is_member %}
+                    <button @click="panelOpen = true; panelMode = 'loa'"
+                            class="w-full bg-yellow-500 text-white px-4 py-2 rounded">
+                        LOA
+                    </button>
 
-                <button @click="panelOpen = true; panelMode = 'loa'"
-                        class="w-full bg-yellow-500 text-white px-4 py-2 rounded">
-                    LOA
-                </button>
+                    <button @click="panelOpen = true; panelMode = 'leave'"
+                            class="w-full bg-red-500 text-white px-4 py-2 rounded">
+                        Leave Section
+                    </button>
+                {% endif %}
 
-                <button @click="panelOpen = true; panelMode = 'leave'"
-                        class="w-full bg-red-500 text-white px-4 py-2 rounded">
-                    Leave Section
-                </button>
-                <button @click="panelOpen = true; panelMode = 'join'" class="w-full bg-green-500 text-white px-4 py-2 rounded">Request to Join</button>
+                {% if not is_member and can_request_join %}
+                    <button @click="panelOpen = true; panelMode = 'join'"
+                            class="w-full bg-green-500 text-white px-4 py-2 rounded">
+                        Request to Join
+                    </button>
+                {% endif %}
 
-                <a href="/orbat/management/{{ section.name }}" class="block bg-blue-500 text-white px-4 py-2 rounded text-center">Management</a>
-
+                {% if can_edit_section %}
+                    <a href="{% url 'orbat_section_edit' section.slug %}"
+                       class="block bg-blue-500 text-white px-4 py-2 rounded text-center">
+                        Edit
+                    </a>
+                {% endif %}
             </div>
+
         </div>
         {% endif %}
     </div>
@@ -152,6 +165,8 @@
         </div>
     </template>
 </div>
+    <div x-text="panelMode"></div>
+    <div x-text="panelOpen"></div>
 
     <!-- Slide panel outside of tab content -->
     {% include 'partials/section_slide_panel.html' %}
@@ -160,6 +175,7 @@
 
 {{ section.id|json_script:"section-id" }}
 {{ members_json|json_script:"members" }}
+{{ can_manage_slots|json_script:"can-manage-slots" }}
 {{ sectionSlots|json_script:"section-slots" }}
 {{ roles|json_script:"roles" }}
 
@@ -167,204 +183,80 @@
 
 {% block extra_scripts %}
 <script>
-    window.sectionPage = function() {
-        return {
-            activeTab: 'details',
-            panelOpen: false,
-            panelMode: null,
-            panelPayload: null,
+function sectionPage() {
+    return {
 
-            sectionId: JSON.parse(document.getElementById("section-id").textContent),
-            members: JSON.parse(document.getElementById("members").textContent),
-            sectionSlots: JSON.parse(document.getElementById("section-slots").textContent),
-            roles: JSON.parse(document.getElementById("roles").textContent),
+        activeTab: 'details',
+        panelOpen: false,
+        panelMode: null,
 
-            // ---------- Roles Form ----------
-            slotForm: {
-                slot: { id: null, name: '', colour: '', member: '', description: '', rank:null, roles: []},
-                newRoleId: null,
+        canManageSlots: JSON.parse(
+            document.getElementById("can-manage-slots").textContent
+        ),
 
-                get allRoles() {
-                    return Object.values(this.parent.roles).filter(Boolean);
-                },
+        activeSlot: {
+            id: null,
+            name: '',
+            colour: '',
+            user_id: '',
+            rank_id: '',
+            role_ids: [],
+        },
 
-                get nonRankRoles() {
-                    return this.slot.roles
-                        .map(roleId => this.parent.roles[roleId])
-                        .filter(r => r && !r.is_rank);
-                },
+        sectionSlots: Object.values(
+            JSON.parse(document.getElementById("section-slots").textContent)
+        ),
 
-                get availableRoles() {
-                    return this.allRoles.filter(r => {
-                        // If the slot already has a rank, hide other ranks
-                        if (this.slot.rank && r.is_rank) return false;
+        roles: Object.values(
+            JSON.parse(document.getElementById("roles").textContent)
+        ),
 
-                        // Exclude roles already assigned to the slot
-                        return !this.slot.roles.includes(r.id);
-                    });
-                },
+        members: JSON.parse(
+            document.getElementById("members").textContent
+        ),
 
-                addRole() {
-                    if (!this.newRoleId) return;
-                    const role = this.parent.roles[this.newRoleId];
-                    if (!role) return;
+        openSlot(slotId) {
+            if (slotId === null) {
+                // New slot
+                this.activeSlot = {
+                    id: null,
+                    name: '',
+                    colour: '',
+                    user_id: '',
+                    rank_id: '',
+                    role_ids: [],
+                };
+            } else {
+                const slot = this.sectionSlots.find(s => s.id === slotId);
+                if (!slot) return;
 
-                    if (role.is_rank) {
-                        // Replace existing rank
-                        this.slot.rank = this.newRoleId;
-                    } else {
-                        this.slot.roles.push(this.newRoleId);
-                    }
+                const rankRole = slot.roles.find(
+                    rid => this.roles.find(r => r.id === rid && r.is_rank)
+                );
 
-                    this.newRoleId = null;
-                },
+                const nonRankRoles = slot.roles.filter(
+                    rid => !this.roles.find(r => r.id === rid && r.is_rank)
+                );
 
-                removeRole(idx) {
-                    // Get the non-rank role at the clicked index
-                    const role = this.nonRankRoles[idx];
-                    if (!role) return;
+                this.activeSlot = {
+                    id: slot.id,
+                    name: slot.name,
+                    colour: slot.colour || '',
+                    user_id: slot.user_id || '',
+                    rank_id: rankRole || '',
+                    role_ids: nonRankRoles,
+                };
+            };
 
-                    // Remove it from slot.roles
-                    this.slot.roles = this.slot.roles.filter(rid => rid !== role.id);
-                },
+            this.panelMode = 'slots';
+            this.panelOpen = true;
+        },
 
-                removeRank() {
-                    if (!this.slot.rank) return;
-                    this.slot.rank = null;
-                },
-
-                moveUp(idx) {
-                    const roles = this.nonRankRoles;
-                    if (idx > 0) [roles[idx-1], roles[idx]] = [roles[idx], roles[idx-1]];
-                    this.slot.roles = this.rank ? [this.rank.id, ...roles.map(r => r.id)] : roles.map(r => r.id);
-                },
-
-                moveDown(idx) {
-                    const roles = this.nonRankRoles;
-                    if (idx < roles.length-1) [roles[idx+1], roles[idx]] = [roles[idx], roles[idx+1]];
-                    this.slot.roles = this.rank ? [this.rank.id, ...roles.map(r => r.id)] : roles.map(r => r.id);
-                },
-
-
-                resetSlot() {
-                    this.roles = [];
-                    this.newInlineRole = '';
-                },
-
-                loadSlot(slotId) {
-                    if (!slotId) {
-                        this.slot = { id: null, name: '', colour: '', member: '', description: '', rank: null, roles: [] };
-                    } else {
-                        const slot = this.parent.sectionSlots[slotId];
-                        if (slot) {
-                            // shallow copy to make reactive
-                            const roles = slot.roles || [];
-
-                            // find a rank role if present
-                            const rankRoleId = roles.find(rid => this.parent.roles[rid]?.is_rank);
-
-                            // filter out the rank from roles
-                            const nonRankRoles = roles.filter(rid => rid !== rankRoleId);
-
-                            this.slot = {
-                                ...slot,
-                                rank: rankRoleId ? this.parent.roles[rankRoleId] : null,
-                                roles: nonRankRoles
-                            };
-                        }
-                    }
-                },
-
-                saveSlot() {
-                    (async () => {
-                        const csrfToken = getCsrfToken();
-                        if (!this.slot.name || this.slot.name.trim() === '') {
-                            alert("Role name is required.");
-                            return;
-                        }
-
-                        const url = this.slot.id ? `/api/orbat/section/${sectionId}/slot/${this.role.id}/` : `/api/orbat/section/${sectionId}/slot/`;
-                        const method = this.slot.id ? 'PUT' : 'POST';
-
-                        try {
-
-                            const resp = await fetch(url, {
-                                method: method,
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': csrfToken // make sure you pass the CSRF token
-                                },
-                                body: JSON.stringify(this.slot)
-                            });
-
-                            if (resp.ok) {
-                                console.log("Role saved");
-
-                                return true;
-
-                            } else if (resp.status === 400) {
-                                const errors = await resp.json();
-                                console.error("Validation errors:", errors);
-                            } else {
-                                console.error("Failed to save role:", resp.status, resp.statusText);
-                            }
-                        } catch (err) {
-                            console.error("Error saving role:", err);
-                        }
-                    })();
-                },
-                deleteSlot() {
-                    (async () => {
-                        try {
-                            const csrfToken = getCsrfToken();
-                            const resp = await fetch(`/api/orbat/section/${sectionId}/slot/${this.role.id}/`, {
-                                method: 'DELETE',
-                                headers: { 'X-CSRFToken': csrfToken }
-                            });
-
-                            if (resp.ok) {
-                                console.log("Role deleted");
-                                this.$dispatch('close-panel'); // Close the slide panel
-                                // Optionally trigger HTMX refresh or remove from list
-                            } else {
-                                console.error("Failed to delete role:", resp.status, resp.statusText);
-                            }
-                        } catch (err) {
-                            console.error("Error deleting role:", err);
-                        }
-                    })();
-                },
-            },
-
-            // ---------- LOA Form ----------
-            loaForm: { /* your LOA reactive fields and methods */ },
-
-            // ---------- Join Form ----------
-            joinForm: { /* your Join reactive fields and methods */ },
-
-            // ---------- Leave Form ----------
-            leaveForm: { /* your Leave reactive fields and methods */ },
-
-            // ---------- Management Form ----------
-            manageForm: { /* your Management reactive fields and methods */ },
-
-            // ---------- Panel Methods ----------
-            openSlot(slotId) {
-                this.slotForm.loadSlot(slotId);
-                this.panelMode = 'slots';
-                this.panelPayload = slotId;
-                this.panelOpen = true;
-            },
-            openLOA() { this.panelOpen=true; this.panelMode='loa'; /* load data if needed */ },
-            openJoin() { this.panelOpen=true; this.panelMode='join'; /* load data */ },
-            openLeave() { this.panelOpen=true; this.panelMode='leave'; /* load data */ },
-            openManage() { this.panelOpen=true; this.panelMode='manage'; /* load data */ },
-
-            init() {
-                this.slotForm.members = this.members; // optional, duplicates members
-                this.slotForm.parent = this;
-            }
-        }
-    }
+        closePanel() {
+            this.panelOpen = false;
+            this.panelMode = null;
+        },
+    };
+}
 </script>
 {% endblock %}

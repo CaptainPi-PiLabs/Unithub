@@ -1,2 +1,3 @@
-from .training_base import *
-from .training_views import *
+from .mixins import *
+from .qualifications import *
+from .dashboard import *

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">{{ page_title }}</h1>
+
+<div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">Qualifications</h1>
+    {% if can_create_qualifications %}
+    <a href="{% url 'qualification_create' %}"
+       class="px-4 py-2 bg-green-500 text-white rounded hover:opacity-90 text-sm">
+        New
+    </a>
+    {% endif %}
+</div>
+
+
+{% if object_list %}
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    {% for qualification in object_list %}
+    <div class="p-4 border rounded shadow hover:bg-base-surface-dark transition duration-150">
+        <h2 class="font-semibold text-lg mb-2">{{ qualification.name }}</h2>
+        {% if qualification.description %}
+        <p class="text-sm text-base-muted mb-2">{{ qualification.description }}</p>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="flex flex-wrap gap-2 mt-2">
+            <a href="{% url 'qualification_detail' qualification.pk %}?tab=criteria"
+               class="px-2 py-1 bg-yellow-500 text-white rounded text-sm">
+               Criteria
+            </a>
+
+            <a href="{% url 'qualification_detail' qualification.pk %}?tab=trainers"
+               class="px-2 py-1 bg-green-500 text-white rounded text-sm">
+               Trainers
+            </a>
+
+            <a href="{% url 'qualification_detail' qualification.pk %}?tab=events"
+               class="px-2 py-1 bg-blue-500 text-white rounded text-sm">
+               Events
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p class="text-base-muted">You do not have access to manage any qualifications.</p>
+{% endif %}
+<a href="?{% if show_archived %}{% else %}archived=1{% endif %}">
+    {% if show_archived %}Show Active{% else %}Show Archived{% endif %}
+</a>
+{% endblock %}

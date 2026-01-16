@@ -6,11 +6,11 @@ from django.utils.http import urlencode
 
 from core import settings
 from core.decorators import allow_anonymous
-from core.views import UnitHubBaseView
+from core.views import UnitHubContextMixin
 
 
 @allow_anonymous
-class CustomLoginView(UnitHubBaseView, LoginView):
+class CustomLoginView(UnitHubContextMixin, LoginView):
     template_name = 'login.html'
 
     def dispatch(self, request, *args, **kwargs):

@@ -3,8 +3,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
 
-from apis.views import BaseAPIView
-from orbat.models import SectionSlot, RoleSlotAssignment, SectionAssignment, Role, Section
+from apis.views.base import BaseAPIView
+from orbat.models import SectionSlot, RoleSlotAssignment, Role, Section
 
 
 class SectionSlotAPI(BaseAPIView):
@@ -154,19 +154,3 @@ class SectionRoleOptions(BaseAPIView):
                 })
 
         return Response(role_options)
-
-
-class SectionMembersAPI(BaseAPIView):
-    def get(self, request, section_id):
-        active_assignments = SectionAssignment.objects.filter(
-            section_id=section_id, end_date__isnull=True
-        ).select_related("user")
-
-        members = [
-            {
-                'id': a.user.id,
-                'name': a.user.get_ranked_name(),
-            }
-            for a in active_assignments if a.user
-        ]
-        return Response(members)

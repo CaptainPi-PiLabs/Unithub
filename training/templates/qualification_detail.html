@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
+{% block content %}
+<div
+    x-data="qualificationPage('{{ active_tab|default:'criteria' }}')"
+    x-cloak
+>
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-4">
+        <div>
+            <h1 class="text-2xl font-semibold">{{ qualification.name }}</h1>
+            {% if not qualification.is_active %}
+                <span class="text-sm text-red-500">Archived</span>
+            {% endif %}
+        </div>
+
+        {% if can_edit %}
+        <div class="space-x-2">
+            <a href="{% url 'qualification_edit' qualification.pk %}"
+               class="px-3 py-2 bg-blue-600 text-white rounded text-sm">
+                Edit Qualification
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex border-b mb-6">
+        <button
+            class="px-4 py-2"
+            :class="tabClass('criteria')"
+            @click="setTab('criteria')">
+            Criteria
+        </button>
+
+        <button
+            class="px-4 py-2"
+            :class="tabClass('trainers')"
+            @click="setTab('trainers')">
+            Trainers
+        </button>
+
+        <button
+            class="px-4 py-2"
+            :class="tabClass('events')"
+            @click="setTab('events')">
+            Events
+        </button>
+    </div>
+
+    <!-- ===================== -->
+    <!-- Criteria Tab -->
+    <!-- ===================== -->
+    <div x-show="activeTab === 'criteria'" class="space-y-4">
+
+        {% if can_edit %}
+        <div class="flex justify-end">
+            <a href="{% url 'qualification_criteria_edit' qualification.pk %}"
+               class="px-3 py-2 bg-green-600 text-white rounded text-sm">
+                Manage Criteria
+            </a>
+        </div>
+        {% endif %}
+
+        {% if criteria %}
+            <div class="space-y-3">
+                {% for criterion in criteria %}
+                <div class="border rounded p-4 bg-base-surface-dark">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="font-semibold">{{ criterion.name }}</h3>
+                            <p class="text-sm text-gray-400">
+                                {{ criterion.short_description }}
+                            </p>
+                        </div>
+
+                        <button
+                            class="text-sm text-blue-500"
+                            @click="toggleCriterion({{ criterion.id }})">
+                            Details
+                        </button>
+                    </div>
+
+                    <div x-show="openCriteria.includes({{ criterion.id }})" class="mt-3 text-sm">
+                        {{ criterion.description|linebreaks }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-500 italic">No criteria defined.</p>
+        {% endif %}
+    </div>
+
+    <!-- ===================== -->
+    <!-- Trainers Tab -->
+    <!-- ===================== -->
+    <div x-show="activeTab === 'trainers'" class="space-y-4">
+
+        {% if can_manage_trainers %}
+        <div class="flex justify-end">
+            <a href="{% url 'qualification_trainer_edit' qualification.pk %}"
+               class="px-3 py-2 bg-green-600 text-white rounded text-sm">
+                Manage Trainers
+            </a>
+        </div>
+        {% endif %}
+
+        {% if trainers %}
+        <table class="min-w-full border-collapse">
+            <thead>
+                <tr class="bg-base-surface-dark">
+                    <th class="px-4 py-2 text-left">Name</th>
+                    <th class="px-4 py-2 text-left">Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trainer in trainers %}
+                <tr class="border-base-border">
+                    <td class="px-4 py-2">
+                        <a href="{% url 'user_profile' trainer.user.pk %}"
+                           class="hover:underline">
+                            {{ trainer.user.display_name }}
+                        </a>
+                    </td>
+                    <td class="px-4 py-2">
+                        {{ trainer.role|default:"Trainer" }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p class="text-gray-500 italic">No trainers assigned.</p>
+        {% endif %}
+    </div>
+
+    <!-- ===================== -->
+    <!-- Events Tab -->
+    <!-- ===================== -->
+    <div x-show="activeTab === 'events'" class="space-y-4">
+
+        {% if can_create_event %}
+        <div class="flex justify-end">
+            <a href="{% url 'training_create_event' qualification.pk %}"
+               class="px-3 py-2 bg-blue-600 text-white rounded text-sm">
+                Create Event
+            </a>
+        </div>
+        {% endif %}
+
+        {% if events %}
+        <table class="min-w-full border-collapse">
+            <thead>
+                <tr class="bg-base-surface-dark">
+                    <th class="px-4 py-2 text-left">Date</th>
+                    <th class="px-4 py-2 text-left">Status</th>
+                    <th class="px-4 py-2 text-left">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in events %}
+                <tr class="border-base-border">
+                    <td class="px-4 py-2">
+                        {{ event.start_time|date:"Y-m-d H:i" }}
+                    </td>
+                    <td class="px-4 py-2">
+                        {{ event.get_status_display }}
+                    </td>
+                    <td class="px-4 py-2">
+                        <a href="{% url 'training_event_detail' event.pk %}"
+                           class="text-blue-500 hover:underline">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p class="text-gray-500 italic">No events scheduled.</p>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function qualificationPage(initialTab) {
+    return {
+        activeTab: initialTab,
+        openCriteria: [],
+
+        setTab(tab) {
+            this.activeTab = tab;
+            const url = new URL(window.location);
+            url.searchParams.set("tab", tab);
+            window.history.replaceState({}, "", url);
+        },
+
+        tabClass(tab) {
+            return this.activeTab === tab
+                ? 'border-b-2 border-blue-500 font-bold'
+                : 'text-gray-500';
+        },
+
+        toggleCriterion(id) {
+            if (this.openCriteria.includes(id)) {
+                this.openCriteria = this.openCriteria.filter(i => i !== id);
+            } else {
+                this.openCriteria.push(id);
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

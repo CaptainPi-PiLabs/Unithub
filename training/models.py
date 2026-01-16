@@ -1,19 +1,19 @@
 from django.conf import settings
 from django.db import models
 
+from core.mixins.model_mixin import OrderedModelMixin
 from events.models import Event
 
 
-class Qualification(models.Model):
+class Qualification(OrderedModelMixin, models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
-    order = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.name
 
-class QualificationCriterion(models.Model):
+class QualificationCriterion(OrderedModelMixin, models.Model):
     qualification = models.ForeignKey(
         "Qualification",
         on_delete=models.CASCADE,
@@ -21,11 +21,8 @@ class QualificationCriterion(models.Model):
     )
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
-    order = models.PositiveIntegerField(default=0)  # custom order
 
-    class Meta:
-        ordering = ["order"]
-        unique_together = ("qualification", "order")
+    _order_scope_fields = ["qualification"]
 
     def __str__(self):
         return f"{self.qualification.name} - {self.description}"

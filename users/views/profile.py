@@ -3,37 +3,13 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
 
-from core.views import UnitHubBaseView
+from core.views import UnitHubTemplateView
 from users.models import CustomUser
+from users.views import ProfileContextMixin
 
 
-class UserListView(UnitHubBaseView):
+class UserListView(UnitHubTemplateView):
     template_name = 'users_list.html'
-
-class ProfileBaseView(UnitHubBaseView):
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-        profile_id = self.kwargs.get("user_id") or user.id
-        context['user_profile'] = CustomUser.objects.filter(id=profile_id).first()
-
-        if user.is_authenticated:
-            context["show_management"] = user.is_staff
-
-        context["title"] = "Profile"
-
-        context["sidebar"] = [
-            {"name": "Overview", "path": f"/profile/{profile_id}/"},
-            {"name": "Training", "path": f"/profile/{profile_id}/training/"},
-            {"name": "Attendance", "path": f"/profile/{profile_id}/attendance/"},
-            {"name": "Timeline", "path": f"/profile/{profile_id}/timeline/"},
-        ]
-
-        if context["show_management"]:
-            context["sidebar"].append({"name": "Management", "path": "/profile/{profile_id}/management/"})
-
-        return context
 
 @login_required
 def toggle_theme(request):
@@ -43,7 +19,7 @@ def toggle_theme(request):
     return redirect(request.META.get("HTTP_REFERER", "dashboard-home"))
 
 @method_decorator(login_required, name="dispatch")
-class MyProfileView(ProfileBaseView):
+class MyProfileView(ProfileContextMixin, UnitHubTemplateView):
     template_name = 'user_profile.html'
 
     def get_context_data(self, **kwargs):
@@ -52,7 +28,7 @@ class MyProfileView(ProfileBaseView):
         context['has_edit_perms'] = True
         return context
 
-class UserProfileView(ProfileBaseView):
+class UserProfileView(ProfileContextMixin, UnitHubTemplateView):
     template_name = 'user_profile.html'
 
     user_obj = None
@@ -78,7 +54,7 @@ class UserProfileView(ProfileBaseView):
         return context
 
 @method_decorator(login_required, name="dispatch")
-class MyProfileEditView(ProfileBaseView):
+class MyProfileEditView(ProfileContextMixin, UnitHubTemplateView):
     template_name = 'user_profile_edit.html'
 
     def get_context_data(self, **kwargs):
@@ -89,7 +65,7 @@ class MyProfileEditView(ProfileBaseView):
         return context
 
 @method_decorator(login_required, name="dispatch")
-class UserProfileEditView(ProfileBaseView):
+class UserProfileEditView(ProfileContextMixin, UnitHubTemplateView):
     template_name = 'user_profile_edit.html'
 
     user_obj = None
@@ -118,5 +94,5 @@ class UserProfileEditView(ProfileBaseView):
         context['is_own_profile'] = self.is_own_profile
         context['has_edit_perms'] = self.has_edit_perms
 
-class ORBATTimelineView(ProfileBaseView):
+class ORBATTimelineView(ProfileContextMixin, UnitHubTemplateView):
     template_name = 'user_timeline.html'

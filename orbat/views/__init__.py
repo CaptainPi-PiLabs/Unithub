@@ -1,4 +1,4 @@
-from .orbat_base_views import *
+from .mixins import *
 from .application_views import *
 from .bulk_actions import *
 from .history_views import *

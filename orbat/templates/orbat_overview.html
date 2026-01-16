@@ -17,7 +17,7 @@
             {% for group in section_groups %}
                 {% if group.section.platoon == platoon or platoon == "no_platoon" and not group.section.platoon %}
                     <div class="bg-base-surface shadow-md rounded-lg p-4 border border-base-border">
-                        <h3 class="text-lg font-semibold mb-2 text-base-text"><a href="/orbat/section/{{ group.section.name }}" class="hover:underline text-base-text">{{ group.section.name }}</a></h3>
+                        <h3 class="text-lg font-semibold mb-2 text-base-text"><a href="{% url 'orbat_section_detail' group.section.slug %}" class="hover:underline text-base-text">{{ group.section.name }}</a></h3>
 
                         <table class="w-full table-fixed border border-base-border rounded-lg text-sm text-base-text">
                             <thead>

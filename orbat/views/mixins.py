@@ -1,18 +1,18 @@
-from core.views.base import UnitHubBaseView
 from orbat.permission_helpers import can_manage_orbat
 
 
-class ORBATBaseView(UnitHubBaseView):
-    title = "Orbat"
+class ORBATContextMixin:
+    title = "ORBAT"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
-        if user.is_authenticated:
-            context["show_management"] = can_manage_orbat(user)
+        context["show_management"] = (
+            user.is_authenticated and can_manage_orbat(user)
+        )
 
-        context["sidebar"] = [
+        sidebar = [
             {"name": "Overview", "path": "/orbat/"},
             {"name": "Sections", "path": "/orbat/sections/"},
             {"name": "Members", "path": "/orbat/members/"},
@@ -21,6 +21,11 @@ class ORBATBaseView(UnitHubBaseView):
         ]
 
         if context["show_management"]:
-            context["sidebar"].append({"name": "Management", "path": "/orbat/management/"})
+            sidebar.append(
+                {"name": "Management", "path": "/orbat/management/"}
+            )
+
+        context["sidebar"] = sidebar
+        context["title"] = getattr(self, "title", "ORBAT")
 
         return context
