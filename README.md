@@ -32,10 +32,13 @@ DEBUG=False
 SECRET_KEY=
 ALLOWED_HOSTS=*
 
-DISCORD_CLIENT_ID=
-DISCORD_CLIENT_SECRET=
-DISCORD_REDIRECT_URI=http://localhost:8000/auth/discord/callback/
+DISCORD_CLIENT_ID
+DISCORD_CLIENT_SECRET
+DISCORD_REDIRECT_URI    # http://localhost:8000/auth/discord/callback/
 
-ENABLE_EVENTS=True     # Enable WIP events features
-ENABLE_TRAINING=True   # Enable WIP training features
+AUTH_ENABLE_BUILTIN     # Bool, Default True
+AUTH_ENABLE_DISCORD     # Bool, Default True if DISCORD_CLIENT_ID present
+
+ENABLE_EVENTS=True      # Enable WIP events features
+ENABLE_TRAINING=True    # Enable WIP training features
 ```
