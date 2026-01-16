@@ -12,3 +12,4 @@ class OrbatActions(str, Enum):
     APPROVE_SECTION_APPLICATION = "approve_section_application"
     APPROVE_UNIT_APPLICATION = "approve_unit_application"
     DENY_UNIT_APPLICATION = "deny_unit_application"
+    LEAVE_SECTION = "leave_section"

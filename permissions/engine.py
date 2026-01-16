@@ -1,3 +1,5 @@
+from enum import Enum
+
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 
@@ -105,6 +107,9 @@ def _evaluate_permissions(subject, module, action, scope):
 def has_permission(subject, module, action, scope=None):
     if subject is None or getattr(subject, "is_anonymous", False):
         return False
+
+    if not isinstance(action, Enum):
+        raise ValueError("Action must be an Enum")
 
     if getattr(subject, "is_superuser", False):
         return True
