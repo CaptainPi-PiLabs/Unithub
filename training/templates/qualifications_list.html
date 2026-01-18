@@ -1,52 +1,133 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">{{ page_title }}</h1>
-
-<div class="flex justify-between items-center mb-4">
-    <h1 class="text-2xl font-bold">Qualifications</h1>
-    {% if can_create_qualifications %}
-    <a href="{% url 'qualification_create' %}"
-       class="px-4 py-2 bg-green-500 text-white rounded hover:opacity-90 text-sm">
-        New
-    </a>
-    {% endif %}
-</div>
-
-
-{% if object_list %}
-<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-    {% for qualification in object_list %}
-    <div class="p-4 border rounded shadow hover:bg-base-surface-dark transition duration-150">
-        <h2 class="font-semibold text-lg mb-2">{{ qualification.name }}</h2>
-        {% if qualification.description %}
-        <p class="text-sm text-base-muted mb-2">{{ qualification.description }}</p>
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+<div x-data="qualificationsPage()" x-cloak>
+    <h1 class="text-2xl font-bold mb-4">{{ page_title }}</h1>
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold">Qualifications</h1>
+        {% if can_create_qualifications %}
+        <button @click="openCreatePanel()"
+                class="px-4 py-2 bg-green-500 text-white rounded hover:opacity-90 text-sm">
+            New
+        </button>
         {% endif %}
+    </div>
 
-        <!-- Actions -->
-        <div class="flex flex-wrap gap-2 mt-2">
-            <a href="{% url 'qualification_detail' qualification.pk %}?tab=criteria"
-               class="px-2 py-1 bg-yellow-500 text-white rounded text-sm">
-               Criteria
-            </a>
+    {% if object_list %}
+    <div x-data="qualificationDrag()" x-init="init()" x-cloak>
+        <div id="qualification-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for qualification in object_list %}
+            <div
+                class="qualification-tile p-4 border rounded shadow hover:bg-base-surface-dark transition h-32 overflow-hidden relative"
+                data-id="{{ qualification.id }}"
+                @click="goToDetail({{ qualification.id }})"
+            >
+                <h2 class="font-semibold text-lg mb-1 truncate">{{ qualification.name }}</h2>
+                <p class="text-sm text-base-muted mb-2 line-clamp-3">{{ qualification.description }}</p>
 
-            <a href="{% url 'qualification_detail' qualification.pk %}?tab=trainers"
-               class="px-2 py-1 bg-green-500 text-white rounded text-sm">
-               Trainers
-            </a>
-
-            <a href="{% url 'qualification_detail' qualification.pk %}?tab=events"
-               class="px-2 py-1 bg-blue-500 text-white rounded text-sm">
-               Events
-            </a>
+                <div
+                    class="drag-handle absolute top-2 right-2 cursor-grab text-gray-400 text-sm select-none"
+                    @click.stop
+                >
+                    ☰
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
-    {% endfor %}
+    {% else %}
+    <p class="text-base-muted">There are no qualifications</p>
+    {% endif %}
+    <a href="?{% if show_archived %}{% else %}archived=1{% endif %}">
+        {% if show_archived %}Hide Archived{% else %}Show Archived{% endif %}
+    </a>
+
+    {% include "partials/qualification_list_slide_panel.html" %}
 </div>
-{% else %}
-<p class="text-base-muted">You do not have access to manage any qualifications.</p>
-{% endif %}
-<a href="?{% if show_archived %}{% else %}archived=1{% endif %}">
-    {% if show_archived %}Show Active{% else %}Show Archived{% endif %}
-</a>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<script>
+function qualificationsPage() {
+    return {
+        panelOpen: false,
+        panelMode: null,
+        activeQualification: {},
+
+        openCreatePanel() {
+            this.activeQualification = { name: '', description: '' };
+            this.panelMode = 'qualification_create';
+            this.panelOpen = true;
+        }
+    }
+}
+
+function qualificationDrag() {
+    return {
+        dragging: false,
+
+        init() {
+            const el = document.getElementById("qualification-list");
+            if (!el) return;
+
+            // Wait until Sortable is loaded
+            const waitForSortable = () => {
+                if (typeof Sortable === "undefined") {
+                    setTimeout(waitForSortable, 50);
+                    return;
+                }
+
+                // Initialize Sortable
+                Sortable.create(el, {
+                    animation: 150,
+                    handle: ".cursor-grab",
+                    onStart: () => {
+                        this.dragging = true;
+                    },
+                    onEnd: (evt) => {
+                        this.dragging = false;
+
+                        const movedId = evt.item.dataset.id;
+                        const newIndex = evt.newIndex + 1;
+
+                        if (!movedId) {
+                            console.error("Missing qualification id");
+                            location.reload();
+                            return;
+                        }
+
+                        fetch(`/training/qualifications/${movedId}/move/`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRFToken": this.csrfToken(),
+                            },
+                            body: JSON.stringify({ position: newIndex }),
+                        }).then((res) => {
+                            if (!res.ok) {
+                                alert("Failed to move qualification");
+                                location.reload();
+                            }
+                        });
+                    },
+                });
+            };
+
+            waitForSortable();
+        },
+
+        goToDetail(id) {
+            if (this.dragging) return;
+            window.location.href = `/training/qualifications/${id}/`;
+        },
+
+        csrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        },
+    };
+}
+</script>
 {% endblock %}

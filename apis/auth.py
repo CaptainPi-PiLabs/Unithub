@@ -14,7 +14,7 @@ class APIKeyAuthentication(BaseAuthentication):
 
     def authenticate(self, request):
         api_key_value  = request.headers.get("X-API-KEY")
-        if not api_key_value :
+        if not api_key_value:
             return None  # no key provided → let DRF handle anonymous
 
         hashed_key = APIKeyBase.hash_key(api_key_value)

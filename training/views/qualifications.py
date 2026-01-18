@@ -1,13 +1,14 @@
-from django.forms import inlineformset_factory
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse
 from django.utils import timezone
-from rest_framework.exceptions import PermissionDenied
+from django.views.decorators.http import require_POST
 
-from core.views import UnitHubListView, UnitHubUpdateView, UnitHubCreateView, UnitHubDetailView
+from apis.views.training.criterion import CriterionAPI, CriterionMoveAPI
+from apis.views.training.qualification import CreateQualificationAPI, QualificationAPI, QualificationMoveAPI
+from apis.views.training.trainer import TrainerAPI
+from apis.views.wrapper import call_api_view
+from core.views import UnitHubListView, UnitHubDetailView
 from permissions.engine import has_training_permission
 from training.enums import TrainingActions
-from training.forms import QualificationCriterionForm, QualificationForm
 from training.models import Qualification, QualificationCriterion, QualificationTrainer
 from training.views import TrainingContextMixin
 
@@ -37,7 +38,7 @@ class QualificationDetailView(TrainingContextMixin, UnitHubDetailView):
     template_name = "qualification_detail.html"
 
     def get_object(self):
-        pk = self.kwargs["pk"]
+        pk = self.kwargs["qual_id"]
         return get_object_or_404(Qualification, pk=pk)
 
     def get_context_data(self, **kwargs):
@@ -82,6 +83,15 @@ class QualificationDetailView(TrainingContextMixin, UnitHubDetailView):
             .order_by("order")
         )
 
+        context["criteria_json"] = [
+            {
+                "id": criterion.id,
+                "name": criterion.name,
+                "description": criterion.description,
+            }
+            for criterion in context["criteria"]
+        ]
+
         # --------------------
         # Trainers
         # --------------------
@@ -113,82 +123,71 @@ class QualificationDetailView(TrainingContextMixin, UnitHubDetailView):
 
         return context
 
-class TrainingManagementCreateView(TrainingContextMixin, UnitHubCreateView):
-    model = Qualification
-    form_class = QualificationForm
-    template_name = "training_qualification_create.html"
+@require_POST
+def create_qualification(request):
+    response, success = call_api_view(
+        CreateQualificationAPI,
+        request,
+        success_message="Qualification created successfully"
+    )
 
-    def get_success_url(self):
-        return reverse(
-            "qualification_detail",
-            kwargs={"pk": self.object.pk},
-        )
+    if success:
+        qual_id = response.data.get("id")
+        if qual_id:
+            return redirect("training_qualification_detail", qual_id=qual_id)
+    return redirect("training_qualification_list")
 
-    def dispatch(self, request, *args, **kwargs):
-        if not has_training_permission(self.request.user, TrainingActions.CREATE_QUALIFICATION):
-            raise PermissionDenied
-        return super().dispatch(request, *args, **kwargs)
+@require_POST
+def save_qualification(request, qual_id):
+    call_api_view(
+        QualificationAPI,
+        request,
+        qual_id=qual_id,
+        success_message="Qualification saved successfully"
+    )
+    return redirect("training_qualification_detail", qual_id=qual_id)
 
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        self.add_message("Qualification created successfully")
-        return response
+@require_POST
+def remove_qualification(request, qual_id):
+    request.method = "DELETE"
+    response, success = call_api_view(
+        QualificationAPI,
+        request,
+        qual_id=qual_id,
+        success_message="Qualification removed successfully"
+    )
+    if success:
+        return redirect("training_qualification_list")
+    return redirect("training_qualification_detail", qual_id=qual_id)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["page_title"] = "New Qualification"
-        context["breadcrumbs"] = [
-            {"name": "Training", "url": "/training"},
-            {"name": "Qualifications", "url": "/training/qualifications/"},
-            {"name": "New Qualification", "url": None},
-        ]
-        return context
+@require_POST
+def move_qualification(request, qual_id):
+    call_api_view(QualificationMoveAPI, request, qual_id=qual_id)
+    return redirect("training_qualification_list")
 
-class TrainingManagementEditView(TrainingContextMixin, UnitHubUpdateView):
-    template_name = "training_management_edit.html"
+@require_POST
+def save_criterion(request, qual_id):
+    call_api_view(CriterionAPI, request, qual_id=qual_id)
+    return redirect("training_qualification_detail", qual_id=qual_id)
 
-    def get_object(self):
-        pk = self.kwargs["pk"]
-        qualification = get_object_or_404(Qualification, pk=pk)
-        if not has_training_permission(self.request.user, TrainingActions.MODIFY_QUALIFICATION, qualification):
-            raise PermissionDenied
-        return qualification
+@require_POST
+def remove_criterion(request, qual_id):
+    request.method = "DELETE"
+    call_api_view(CriterionAPI, request, qual_id=qual_id)
+    return redirect("training_qualification_detail", qual_id=qual_id)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        qualification = self.get_object()
+@require_POST
+def move_criterion(request, qual_id):
+    call_api_view(CriterionMoveAPI, request, qual_id=qual_id)
+    return redirect("training_qualification_detail", qual_id=qual_id)
 
-        CriterionFormset = inlineformset_factory(
-            Qualification, QualificationCriterion,
-            form=QualificationCriterionForm, extra=1, can_delete=True
-        )
+@require_POST
+def save_trainer(request, qual_id):
+    call_api_view(TrainerAPI, request, qual_id=qual_id)
+    return redirect("training_qualification_detail", qual_id=qual_id, tab="trainers")
 
-        if self.request.method == "POST":
-            context["form"] = QualificationForm(self.request.POST, instance=qualification)
-            context["formset"] = CriterionFormset(self.request.POST, instance=qualification)
-        else:
-            context["form"] = QualificationForm(instance=qualification)
-            context["formset"] = CriterionFormset(instance=qualification)
-
-        context["qualification"] = qualification
-        context["page_title"] = f"Edit {qualification.name}"
-        return context
-
-    def post(self, request, *args, **kwargs):
-        qualification = self.get_object()
-        CriterionFormset = inlineformset_factory(
-            Qualification, QualificationCriterion,
-            form=QualificationCriterionForm, extra=1, can_delete=True
-        )
-        form = QualificationForm(request.POST, instance=qualification)
-        formset = CriterionFormset(request.POST, instance=qualification)
-
-        if form.is_valid() and formset.is_valid():
-            form.save()
-            formset.save()
-            return redirect("training_management_detail", pk=qualification.pk)
-
-        context = self.get_context_data()
-        context["form"] = form
-        context["formset"] = formset
-        return self.render_to_response(context)
+@require_POST
+def remove_trainer(request, qual_id):
+    request.method = "DELETE"
+    call_api_view(TrainerAPI, request, qual_id=qual_id)
+    return redirect("training_qualification_detail", qual_id=qual_id, tab="trainers")

@@ -25,7 +25,7 @@ class QualificationCriterion(OrderedModelMixin, models.Model):
     _order_scope_fields = ["qualification"]
 
     def __str__(self):
-        return f"{self.qualification.name} - {self.description}"
+        return f"{self.qualification.name} - {self.name}"
 
 
 class QualificationEvent(models.Model):
