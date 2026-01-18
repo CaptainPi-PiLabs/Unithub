@@ -26,8 +26,8 @@ class TrainerPolicy(TrainingPolicy):
 
 class SeniorTrainerPolicy(TrainingPolicy):
     actions = {
-        TrainingActions.GRANT_CERTIFICATE,
         TrainingActions.ADD_CRITERIA,
+        TrainingActions.MODIFY_CRITERIA,
         TrainingActions.MODIFY_QUALIFICATION
     }
 

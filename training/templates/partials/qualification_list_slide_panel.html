@@ -1,0 +1,37 @@
+{% extends "partials/base_slide_panel.html" %}
+
+{% block slidePanel %}
+<template x-if="panelMode === 'qualification_create'">
+  <form method="POST" action="{% url 'training_qualification_create' %}">
+    {% csrf_token %}
+
+    <h2 class="text-lg font-semibold mb-4">New Qualification</h2>
+
+    <!-- Name -->
+    <div class="mb-4">
+      <label class="block font-semibold mb-1">Name</label>
+      <input type="text" name="name" x-model="activeQualification.name"
+             class="w-full p-2 border rounded border-gray-300 focus:ring focus:ring-blue-300" required>
+    </div>
+
+    <!-- Description -->
+    <div class="mb-4">
+      <label class="block font-semibold mb-1">Description</label>
+      <textarea name="description" x-model="activeQualification.description"
+                rows="4"
+                class="w-full p-2 border rounded border-gray-300 focus:ring focus:ring-blue-300"></textarea>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-end space-x-2 mt-6">
+      <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+        Save
+      </button>
+      <button type="button" @click="panelOpen = false"
+              class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+        Cancel
+      </button>
+    </div>
+  </form>
+</template>
+{% endblock %}

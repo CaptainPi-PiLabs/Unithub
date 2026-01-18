@@ -6,45 +6,25 @@
 
 {% block content %}
 <div
-    x-data="qualificationPage('{{ active_tab|default:'criteria' }}')"
+    x-data="qualificationPage()"
+    @close-panel.window="panelOpen = false"
     x-cloak
 >
 
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-4">
-        <div>
-            <h1 class="text-2xl font-semibold">{{ qualification.name }}</h1>
-            {% if not qualification.is_active %}
-                <span class="text-sm text-red-500">Archived</span>
-            {% endif %}
-        </div>
-
-        {% if can_edit %}
-        <div class="space-x-2">
-            <a href="{% url 'qualification_edit' qualification.pk %}"
-               class="px-3 py-2 bg-blue-600 text-white rounded text-sm">
-                Edit Qualification
-            </a>
-        </div>
-        {% endif %}
-    </div>
-
     <!-- Tabs -->
-    <div class="flex border-b mb-6">
+    <div class="flex border-b mb-4">
         <button
             class="px-4 py-2"
-            :class="tabClass('criteria')"
-            @click="setTab('criteria')">
-            Criteria
+            :class="tabClass('details')"
+            @click="setTab('details')">
+            Details
         </button>
-
         <button
             class="px-4 py-2"
             :class="tabClass('trainers')"
             @click="setTab('trainers')">
             Trainers
         </button>
-
         <button
             class="px-4 py-2"
             :class="tabClass('events')"
@@ -54,46 +34,86 @@
     </div>
 
     <!-- ===================== -->
-    <!-- Criteria Tab -->
+    <!-- Details Tab -->
     <!-- ===================== -->
-    <div x-show="activeTab === 'criteria'" class="space-y-4">
+    <div x-show="activeTab === 'details'" class="flex-1 space-y-4">
 
-        {% if can_edit %}
-        <div class="flex justify-end">
-            <a href="{% url 'qualification_criteria_edit' qualification.pk %}"
-               class="px-3 py-2 bg-green-600 text-white rounded text-sm">
-                Manage Criteria
-            </a>
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-semibold">{{ qualification.name }}</h1>
+
+            {% if can_edit %}
+            <button @click="panelOpen = true; panelMode = 'details'"
+                    class="px-3 py-2 bg-blue-600 text-white rounded text-sm">
+                Edit Details
+            </button>
+            {% endif %}
         </div>
-        {% endif %}
+
+        <div>
+            <p class="text-base-text leading-relaxed">
+                {% if qualification.description %}
+                    {{ qualification.description|linebreaks }}
+                {% else %}
+                    <span class="italic text-gray-500">No description provided.</span>
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="border-t border-base-border"></div>
+
+        <h3 class="text-lg font-semibold">Criteria</h3>
 
         {% if criteria %}
             <div class="space-y-3">
                 {% for criterion in criteria %}
-                <div class="border rounded p-4 bg-base-surface-dark">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <h3 class="font-semibold">{{ criterion.name }}</h3>
-                            <p class="text-sm text-gray-400">
-                                {{ criterion.short_description }}
-                            </p>
-                        </div>
-
-                        <button
-                            class="text-sm text-blue-500"
-                            @click="toggleCriterion({{ criterion.id }})">
-                            Details
-                        </button>
+                <div class="border rounded p-4 bg-base-surface-dark flex justify-between items-center">
+                    <div class="flex-1">
+                        <h3 class="font-semibold">{{ criterion.name }}</h3>
+                        <p class="text-sm text-gray-400">{{ criterion.description }}</p>
                     </div>
 
-                    <div x-show="openCriteria.includes({{ criterion.id }})" class="mt-3 text-sm">
-                        {{ criterion.description|linebreaks }}
+                    <div class="flex items-center space-x-2">
+                        <!-- Move buttons (for ordering) -->
+                        {% if can_edit %}
+                        <form method="post"
+                              action="{% url 'training_qualification_criterion_move' qualification.id%}"
+                              class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="criterion_id" value="{{ criterion.id }}">
+                            <input type="hidden" name="direction" value="up">
+                            <button class="px-2 py-1 text-sm hover:underline">⬆️</button>
+                        </form>
+
+                        <form method="post"
+                              action="{% url 'training_qualification_criterion_move' qualification.id %}"
+                              class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="criterion_id" value="{{ criterion.id  }}">
+                            <input type="hidden" name="direction" value="down">
+                            <button class="px-2 py-1 text-sm hover:underline">⬇️</button>
+                        </form>
+                        {% endif %}
+
+                        <!-- Open slide panel -->
+                        {% if can_edit %}
+                        <button class="text-sm text-blue-500 hover:underline" @click="openCriterion(Number('{{ criterion.id }}'))">
+                        Edit
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
             </div>
         {% else %}
             <p class="text-gray-500 italic">No criteria defined.</p>
+        {% endif %}
+
+        {% if can_edit %}
+        <div class="mt-4">
+            <button class="px-4 py-2 bg-green-600 text-white rounded" @click="openCriterion(null)">
+                + New Criterion
+            </button>
+        </div>
         {% endif %}
     </div>
 
@@ -104,10 +124,11 @@
 
         {% if can_manage_trainers %}
         <div class="flex justify-end">
-            <a href="{% url 'qualification_trainer_edit' qualification.pk %}"
-               class="px-3 py-2 bg-green-600 text-white rounded text-sm">
+            <button
+                class="px-3 py-2 bg-green-600 text-white rounded text-sm"
+                @click="panelMode = 'trainers'; panelOpen = true">
                 Manage Trainers
-            </a>
+            </button>
         </div>
         {% endif %}
 
@@ -136,7 +157,7 @@
             </tbody>
         </table>
         {% else %}
-            <p class="text-gray-500 italic">No trainers assigned.</p>
+        <p class="text-gray-500 italic">No trainers assigned.</p>
         {% endif %}
     </div>
 
@@ -187,15 +208,32 @@
         {% endif %}
     </div>
 
+    {% include 'partials/qualification_detail_slide_panel.html' %}
+
 </div>
+
+{{ criteria_json|json_script:"criteria-data" }}
+
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-function qualificationPage(initialTab) {
+function qualificationPage() {
     return {
-        activeTab: initialTab,
+        activeTab: 'details',
+        panelOpen: false,
+        panelMode: null,
         openCriteria: [],
+
+        criteria: JSON.parse(
+            document.getElementById("criteria-data").textContent
+        ),
+
+        activeCriterion: {
+            id: null,
+            name: '',
+            description: '',
+        },
 
         setTab(tab) {
             this.activeTab = tab;
@@ -210,14 +248,37 @@ function qualificationPage(initialTab) {
                 : 'text-gray-500';
         },
 
-        toggleCriterion(id) {
-            if (this.openCriteria.includes(id)) {
-                this.openCriteria = this.openCriteria.filter(i => i !== id);
+        openCriterion(id) {
+            if (id === null) {
+                this.activeCriterion = {
+                    id: null,
+                    name: '',
+                    description: '',
+                };
             } else {
-                this.openCriteria.push(id);
-            }
-        }
-    }
+                const criterion = this.criteria.find(c => c.id === id);
+                if (!criterion) return;
+
+                this.activeCriterion = {
+                    id: criterion.id,
+                    name: criterion.name,
+                    description: criterion.description,
+                };
+            };
+            this.panelMode = 'criteria';
+            this.panelOpen = true;
+        },
+
+        newCriterion() {
+            this.activeCriterion = {
+                id: null,
+                name: '',
+                description: '',
+            };
+            this.panelMode = 'criteria';
+            this.panelOpen = true;
+        },
+    };
 }
 </script>
 {% endblock %}
