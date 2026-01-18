@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
-from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.test import APIClient
 from apis.models import UserAPIKey, ServiceAPIKey, APIKeyBase
 from orbat.enums import OrbatActions
@@ -30,7 +29,6 @@ class APIAuthTests(TestCase):
         )
 
         self.url = reverse("api-orbat-section-membership", kwargs={"section_slug": self.section1.slug})
-        print(self.url)
 
         self.client = APIClient()
 
