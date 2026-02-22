@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import ImproperlyConfigured
@@ -5,7 +6,6 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy, reverse
 from django.utils.http import urlencode
 
-from core import settings
 from core.access.decorators import allow_anonymous
 from common.views import UnitHubContextMixin
 

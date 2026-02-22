@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 import requests
@@ -10,7 +11,6 @@ from django.views import View
 from core.access.decorators import allow_anonymous
 from external_auth.backends import ExternalAccountBackend
 from external_auth.models import DiscordAccount
-from core import settings
 
 
 # Helper: exchange OAuth code for token
