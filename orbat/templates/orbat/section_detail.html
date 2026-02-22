@@ -1,0 +1,207 @@
+{% extends "common/base.html" %}
+
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
+{% block content %}
+<div x-data="sectionPage({{ section.id }})" @close-panel.window="panelOpen = false" x-cloak>
+
+    <!-- Tabs -->
+    <div class="flex border-b mb-4">
+        <button
+            :class="{ 'border-b-2 border-blue-500 font-bold': activeTab === 'details' }"
+            class="px-4 py-2"
+            @click="activeTab = 'details'">
+            Details
+        </button>
+        <button
+            :class="{ 'border-b-2 border-blue-500 font-bold': activeTab === 'history' }"
+            class="px-4 py-2"
+            @click="activeTab = 'history'">
+            History
+        </button>
+    </div>
+
+    <!-- Details Tab -->
+    <div x-show="activeTab === 'details'" class="flex flex-col md:flex-row gap-6">
+
+        <!-- Left Column: Slots / Members -->
+        <div class="flex-1 space-y-6">
+            <!-- Slotted Members -->
+            <div>
+                <h3 class="text-lg font-semibold mb-2">Slots / Members</h3>
+                <table class="min-w-full border-collapse">
+                    <thead>
+                    <tr class="bg-base-surface-dark">
+                        <th class="px-4 py-2 text-left">Role</th>
+                        <th class="px-4 py-2 text-left">Member</th>
+                        <th class="px-4 py-2 text-left">Colour</th>
+                        {% if can_manage %}
+                        <th class="px-4 py-2 text-left">Order</th>
+                        {% endif %}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for slot in slot_snapshots %}
+                    <tr class="border-base-border">
+                        <td class="px-4 py-2">
+                            <button
+                                class="hover:underline font-semibold"
+                                @click="openSlot(Number('{{ slot.id }}'))">
+                                {{ slot.name }}
+                            </button>
+                        </td>
+                        <td class="px-4 py-2">
+                            {% if slot.user_id %}
+                            <a href="{% url 'user_profile' slot.user_id %}" class="hover:underline">
+                                {{ slot.user_name }}
+                            </a>
+                            {% else %}
+                            <span class="text-gray-500 italic">Empty</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2
+                            {% if slot.colour == 'Red' %} text-red-600
+                            {% elif slot.colour == 'Blue' %} text-blue-600
+                            {% elif slot.colour == 'Green' %} text-green-600
+                            {% elif slot.colour == 'Gold' %} text-yellow-600
+                            {% else %} text-gray-500
+                            {% endif %}">
+                            {{ slot.colour|default:"—" }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+
+                {% if perms.orbat.manage_section and sectionSlots|length < section.max_size %}
+                <div class="mt-3">
+                    <button class="px-4 py-2 bg-green-600 text-white rounded"
+                            @click="openSlot(null)">
+                        + Add Slot
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right Column: Section Info & Buttons -->
+        {% if request.user.is_authenticated %}
+        <div class="w-full md:w-1/3 space-y-4">
+            <!-- Section image -->
+            {% if section.image %}
+            <img src="{{ section.image.url }}" alt="{{ section.name }}" class="rounded w-full">
+            {% endif %}
+
+            <!-- Description -->
+            <p class="text-base-text">{{ section.description }}</p>
+
+            <!-- Buttons -->
+            <div class="space-y-2">
+                {% if is_member %}
+                    <button @click="panelOpen = true; panelMode = 'loa'"
+                            class="w-full bg-yellow-500 text-white px-4 py-2 rounded">
+                        LOA
+                    </button>
+
+                    <button @click="panelOpen = true; panelMode = 'leave'"
+                            class="w-full bg-red-500 text-white px-4 py-2 rounded">
+                        Leave Section
+                    </button>
+                {% endif %}
+
+                {% if not is_member and can_request_join %}
+                    <button @click="panelOpen = true; panelMode = 'join'"
+                            class="w-full bg-green-500 text-white px-4 py-2 rounded">
+                        Request to Join
+                    </button>
+                {% endif %}
+
+                {% if can_edit_section %}
+                    <a href="{% url 'orbat_section_detail' section.slug %}"
+                       class="block bg-blue-500 text-white px-4 py-2 rounded text-center">
+                        Edit
+                    </a>
+                {% endif %}
+            </div>
+
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- History Tab -->
+    {% load timeline_tags %}
+    <div x-show="activeTab === 'history'" class="mt-4" x-data="{ loaded: false }"
+     x-init="$watch('activeTab', value => { if(value==='history'){ loaded=true } })">
+
+        <template x-if="loaded">
+            <div id="timeline-container">
+                {% render_timeline section=section %}
+            </div>
+        </template>
+    </div>
+
+    {% include "orbat/partials/section_detail_slide_panel.html" %}
+
+</div>
+
+{{ section.id|json_script:"section_id" }}
+{{ can_manage_slots|json_script:"can_manage_slots" }}
+{{ slots_json|json_script:"slots_json" }}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function sectionPage(section_id) {
+    return {
+        activeTab: 'details',
+        panelOpen: false,
+        panelMode: null,
+        activeSlot: {},
+        slotData: JSON.parse(document.getElementById("slots_json").textContent),
+        canManageSlots: JSON.parse(document.getElementById("can_manage_slots").textContent),
+
+        openSlot(slotId = null) {
+            if (slotId && this.slotData[slotId]) {
+                this.activeSlot = {...this.slotData[slotId]};
+            } else {
+                this.activeSlot = {name: '', colour: '', is_officer: false};
+            }
+            this.panelMode = 'slots';
+            this.panelOpen = true;
+        },
+
+        closePanel() {
+            this.panelOpen = false;
+            this.panelMode = null;
+            this.activeSlot = {};
+        },
+
+        setAction() {
+            this.$refs.slotForm.action = this.activeSlot.id
+                ? `/orbat/section/${section_id}/slot/${this.activeSlot.id}/edit/`
+                : `/orbat/section/${section_id}/slot/create/`;
+        },
+
+        submitSlot() {
+            const url = this.activeSlot.id
+                ? `/orbat/section/${section_id}/slot/${this.activeSlot.id}/edit/`
+                : `/orbat/section/${section_id}/slot/create/`;
+
+            const formData = new FormData();
+            formData.append('name', this.activeSlot.name);
+            formData.append('colour', this.activeSlot.colour);
+            formData.append('is_officer', this.activeSlot.is_officer ? '1' : '0');
+
+            fetch(url, {method: 'POST', headers: {"X-CSRFToken": this.csrfToken()}, body: formData})
+        },
+
+        csrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
+    };
+}
+</script>
+{% endblock %}

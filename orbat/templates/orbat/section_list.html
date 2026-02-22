@@ -1,0 +1,180 @@
+{% extends "common/base.html" %}
+
+{% block content %}
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+<div x-data="orbatSectionsPage()" x-cloak class="space-y-6">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">Sections</h1>
+        <div class="flex gap-2">
+            {% if can_create_section %}
+            <button @click="openSection(null)" class="px-4 py-2 bg-blue-600 text-white rounded hover:opacity-90 text-sm">
+                + New Section
+            </button>
+            {% endif %}
+            {% if can_create_platoon %}
+            <button @click="openPlatoon(null)" class="px-4 py-2 bg-green-600 text-white rounded hover:opacity-90 text-sm">
+                + New Platoon
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Platoons -->
+    {% for platoon in platoons %}
+    <div class="border rounded bg-base-surface">
+        <div class="flex items-center justify-between px-4 py-3 border-b bg-base-surface-dark">
+            <h2 class="text-lg font-semibold">{{ platoon.name }}</h2>
+            <div class="flex gap-2">
+                {% if can_edit_platoon %}
+                <button @click="openPlatoon({{ platoon.id }})"
+                        class="px-3 py-1 bg-yellow-500 text-white rounded text-sm hover:opacity-90">
+                    Edit Platoon
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if platoon.sections.all %}
+        <ul class="divide-y">
+            {% for section in platoon.sections.all %}
+            <li class="px-4 py-3 flex items-center justify-between hover:bg-base-surface-dark transition">
+                <div>
+                    <a href="{% url 'orbat_section_detail' section.slug %}" class="font-medium hover:underline">
+                        {{ section.name }}
+                    </a>
+                    {% if section.description %}
+                    <p class="text-sm text-base-muted">{{ section.description }}</p>
+                    {% endif %}
+                </div>
+                <div class="flex gap-2 text-sm">
+                    <a href="{% url 'orbat_section_detail' section.slug %}" class="text-blue-500 hover:underline">View</a>
+                    {% if can_edit_platoon %}
+                    <button @click="moveSection('{{ section.pk }}', 'up')" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" title="Move Up">⬆️</button>
+                    <button @click="moveSection('{{ section.pk }}', 'down')" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" title="Move Down">⬇️</button>
+                    <button @click="openSection('{{ section.pk }}')" class="text-yellow-500 hover:underline">Edit</button>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="px-4 py-3 text-base-muted italic">No sections in this platoon.</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <!-- Unassigned Sections -->
+    {% if unassigned_sections %}
+    <div class="border rounded bg-base-surface">
+        <div class="px-4 py-3 border-b bg-base-surface-dark">
+            <h2 class="text-lg font-semibold">Unassigned Sections</h2>
+        </div>
+        <ul class="divide-y">
+            {% for section in unassigned_sections %}
+            <li class="px-4 py-3 flex justify-between items-center">
+                <span>{{ section.name }}</span>
+                <div class="flex gap-2">
+                    <a href="{% url 'orbat_section_detail' section.slug %}" class="text-blue-500 hover:underline text-sm">View</a>
+                    {% if can_create_section %}
+                    <button @click="moveSection('{{ section.pk }}', 'up')" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" title="Move Up">⬆️</button>
+                    <button @click="moveSection('{{ section.pk }}', 'down')" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" title="Move Down">⬇️</button>
+                    <button @click="openSection('{{ section.pk }}')" class="text-yellow-500 hover:underline text-sm">Edit</button>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% include "orbat/partials/section_list_slide_panel.html" %}
+</div>
+
+{{ platoons_json|json_script:"platoons_json" }}
+{{ section_json|json_script:"section_json" }}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function orbatSectionsPage() {
+    return {
+        panelOpen: false,
+        panelMode: null,       // 'platoon' or 'section'
+        activePlatoon: {},     // {id, name}
+        activeSection: {},     // {id, name, platoon_id, description, shorthand, max_size}
+        platoonData: JSON.parse(document.getElementById("platoons_json").textContent),
+        sectionData: JSON.parse(document.getElementById("section_json").textContent),
+
+        openPlatoon(platoon_id = null) {
+            this.panelMode = 'platoon';
+            if (platoon_id && this.platoonData[platoon_id]) {
+                this.activePlatoon = {...this.platoonData[platoon_id]};
+            } else {
+                this.activePlatoon = {name: ''};
+            }
+            this.panelOpen = true;
+        },
+
+        openSection(section_id = null) {
+            this.panelMode = 'section';
+            if (section_id && this.sectionData[section_id]) {
+                this.activeSection = {...this.sectionData[section_id]};
+            } else {
+                this.activeSection = {
+                    name: '',
+                    platoon_id: '',
+                    description: '',
+                    shorthand: '',
+                    max_size: ''
+                };
+            }
+            this.panelOpen = true;
+        },
+
+        closePanel() {
+            this.panelOpen = false;
+            this.panelMode = null;
+            this.activePlatoon = {};
+            this.activeSection = {};
+        },
+
+        submitPlatoon() {
+            const url = this.activePlatoon.id
+                ? `/orbat/platoon/${this.activePlatoon.id}/edit/`
+                : '/orbat/platoon/create/';
+            const formData = new FormData();
+            formData.append('name', this.activePlatoon.name);
+
+            fetch(url, {method: 'POST', headers: {"X-CSRFToken": this.csrfToken()}, body: formData})
+        },
+
+        submitSection() {
+            const url = this.activeSection.id
+                ? `/orbat/section/${this.activeSection.id}/edit/`
+                : '/orbat/section/create/';
+            const formData = new FormData();
+            for (const key in this.activeSection) {
+                formData.append(key, this.activeSection[key] || '');
+            }
+
+            fetch(url, {method: 'POST', headers: {"X-CSRFToken": this.csrfToken()}, body: formData})
+        },
+
+        moveSection(sectionId, direction) {
+            fetch(`/orbat/section/${sectionId}/move/`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json","X-CSRFToken": this.csrfToken()},
+                body: JSON.stringify({direction}),
+            })
+        },
+
+        csrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
+    }
+}
+</script>
+{% endblock %}

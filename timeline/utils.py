@@ -6,21 +6,25 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
+from orbat.models.sections import Section
 from timeline.models import TimelineEntry, TimelineTypes
 
 
-def add_entry(event_type, user, section=None, description="", related_object=None, created_by=None, timestamp=None):
+def add_entry(event_type, user, section=None, description="", snapshot_name="", related_object=None, created_by=None, timestamp=None):
+    print("Creating timeline event")
     entry = TimelineEntry(
         event_type=event_type,
         user=user,
         section=section,
         description=description,
-        created_by=created_by,
+        snapshot_name=snapshot_name,
         timestamp=timestamp or timezone.now()
     )
     if related_object:
         entry.content_type = ContentType.objects.get_for_model(related_object)
         entry.object_id = related_object.id
+    entry.save()
+    return entry
 
 def get_recent_orbat_timeline(user_qs=None, section=None):
     three_months_ago = timezone.now() - timedelta(days=90)
@@ -150,7 +154,6 @@ def get_user_query(user_qs, active_timeline_user=None):
 def get_section_query(section_qs, active_timeline_section=None):
     if not active_timeline_section:
         return section_qs
-    from orbat.models import Section
     return Section.objects.filter(pk=active_timeline_section).first()
 
 def get_start_date_query(default_start, range_str):

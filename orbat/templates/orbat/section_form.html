@@ -1,0 +1,147 @@
+{% extends "common/base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div x-data="sectionPage()" @close-panel.window="panelOpen = false" x-cloak>
+<div class="max-w-3xl mx-auto p-4">
+
+    <h1 class="text-2xl font-bold mb-4">
+        {% if section %}Edit Section: {{ section.name }}{% else %}Create New Section{% endif %}
+    </h1>
+
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+
+        <!-- Name -->
+        <div>
+            <label for="id_name" class="block font-semibold mb-1">Name</label>
+            {{ form.name|add_class:"w-full p-2 border rounded" }}
+            {% if form.name.errors %}
+                <p class="text-red-600 text-sm mt-1">{{ form.name.errors }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Shorthand -->
+        <div>
+            <label for="id_shorthand" class="block font-semibold mb-1">Shorthand</label>
+            {{ form.shorthand|add_class:"w-full p-2 border rounded" }}
+        </div>
+
+        <!-- Description -->
+        <div>
+            <label for="id_description" class="block font-semibold mb-1">Description</label>
+            {{ form.description|add_class:"w-full p-2 border rounded" }}
+        </div>
+
+        <!-- Type -->
+        <div>
+            <label for="id_type" class="block font-semibold mb-1">Type</label>
+            {{ form.type|add_class:"w-full p-2 border rounded" }}
+        </div>
+
+        <!-- Max Size -->
+        <div>
+            <label for="id_max_size" class="block font-semibold mb-1">Max Size</label>
+            {{ form.max_size|add_class:"w-full p-2 border rounded" }}
+        </div>
+
+        <!-- Platoon -->
+        <div>
+            <label for="id_platoon" class="block font-semibold mb-1">Platoon</label>
+            {{ form.platoon|add_class:"w-full p-2 border rounded" }}
+        </div>
+
+        <!-- Leader -->
+        <div>
+            <label for="id_leader" class="block font-semibold mb-1">Leader</label>
+            {{ form.leader|add_class:"w-full p-2 border rounded" }}
+            <p class="text-sm text-gray-500 mt-1">
+                Only users with an active assignment in this section can be chosen.
+            </p>
+        </div>
+
+        <!-- Submit -->
+        <div class="mt-4">
+            <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:opacity-90">
+                {% if section %}Save Changes{% else %}Create Section{% endif %}
+            </button>
+            <a href="{% url 'orbat_section_list' %}" class="ml-2 text-gray-700 hover:underline">Cancel</a>
+        </div>
+    </form>
+
+    {% if section %}
+        {% if can_manage_members %}
+            <div class="mt-6 border-t pt-4">
+                <button type="button"
+                        @click="openMembersPanel()"
+                        class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800">
+                    Manage Members
+                </button>
+            </div>
+        {% endif %}
+        {% include 'orbat/partials/section_edit_members.html' %}
+    {% endif %}
+
+</div>
+</div>
+
+{{ self_user_id|json_script:"self-user-id" }}
+{{ can_manage_members|json_script:"can-manage-members" }}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function sectionPage() {
+    return {
+        panelOpen: false,
+        panelMode: null,
+
+        membersLoading: false,
+        membersList: [],
+
+        selfUserId: JSON.parse(
+            document.getElementById("self-user-id").textContent
+        ),
+
+        canManageMembers: JSON.parse(
+            document.getElementById("can-manage-members").textContent
+        ),
+
+        openMembersPanel() {
+            this.panelMode = 'members';
+            this.panelOpen = true;
+            this.loadMembers();
+        },
+
+        async loadMembers() {
+            this.membersLoading = true;
+            const res = await fetch(
+                `/api/orbat/section/{{ section.slug }}/membership/`
+            );
+            const data = await res.json();
+            this.membersList = data.members;
+            this.membersLoading = false;
+        },
+
+        async removeMember(userId) {
+            if (!confirm("Remove this member from the section?")) return;
+
+            await fetch(
+                `/api/orbat/section/{{ section.slug }}/membership/`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                    body: JSON.stringify({ user_ids: [userId] }),
+                }
+            );
+
+            this.loadMembers(); // refresh list
+        },
+    };
+}
+</script>
+{% endblock %}

@@ -17,11 +17,11 @@ class ProfileContextMixin:
         context["sidebar"] = [
             {"name": "Overview", "path": f"/profile/{profile_id}/"},
             {"name": "Training", "path": f"/profile/{profile_id}/training/"},
-            {"name": "Attendance", "path": f"/profile/{profile_id}/attendance/"},
+            # {"name": "Attendance", "path": f"/profile/{profile_id}/attendance/"},
             {"name": "Timeline", "path": f"/profile/{profile_id}/timeline/"},
         ]
 
-        if context["show_management"]:
-            context["sidebar"].append({"name": "Management", "path": "/profile/{profile_id}/management/"})
+        # if context["show_management"]:
+        #    context["sidebar"].append({"name": "Management", "path": "/profile/{profile_id}/management/"})
 
         return context

@@ -8,7 +8,7 @@
         <tr>
             <td>{{ assignment.user.display_name }}</td>
             <td>
-                <a class="button" href="{% url 'admin:orbat_section-remove-assignment' original.id assignment.user.id %}">
+                <a class="button" href="#">
                     Remove
                 </a>
             </td>
@@ -19,7 +19,7 @@
 
 {% if active_assignment_count < section.max_size %}
     <p>
-        <a class="button" href="{% url 'admin:orbat_section-add-assignment' section.id %}">
+        <a class="button" href="#">
             Add user to section
         </a>
     </p>

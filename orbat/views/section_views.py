@@ -1,23 +1,20 @@
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponseBadRequest, Http404
-from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse
-from django.utils import timezone
 
-from core.views import UnitHubDetailView, UnitHubListView, UnitHubUpdateView, UnitHubCreateView
+from common.views import UnitHubDetailView, UnitHubListView, UnitHubUpdateView
 from orbat.enums import OrbatActions
 from orbat.forms import SectionForm
-from orbat.models import Section, SectionAssignment, SectionSlot, RoleSlotAssignment
+from orbat.helpers import get_section_slot_snapshots
+from orbat.models.sections import Section
 from orbat.permission_helpers import is_eligible_for_section_application
-from orbat.utils import get_section_slot_context
-from orbat.views import ORBATContextMixin
-from permissions.models import PermissionModule
-from permissions.engine import has_permission, has_orbat_permission, has_any_permission
+from orbat.selectors import is_user_in_section
+from orbat.views.mixins import ORBATContextMixin
+from permissions.engine import has_orbat_permission
 
 
 class ORBATSectionDetailView(ORBATContextMixin, UnitHubDetailView):
     model = Section
-    template_name = 'orbat_section_detail.html'
+    template_name = 'orbat/section_detail.html'
     slug_field = 'slug'
     slug_url_kwarg = 'section_slug'
     context_object_name = 'section'
@@ -27,17 +24,13 @@ class ORBATSectionDetailView(ORBATContextMixin, UnitHubDetailView):
         section = self.object
         user = self.request.user
 
-        is_member = SectionAssignment.objects.filter(
-            section=section,
-            user=user,
-            end_date__isnull=True,
-        ).exists()
+        can_manage = has_orbat_permission(user, OrbatActions.MODIFY_SECTION, section)
 
         context.update({
-            "is_member": is_member,
+            "is_member": is_user_in_section(user, section),
             "can_request_join": is_eligible_for_section_application(user),
-            "can_edit_section": has_orbat_permission(user, OrbatActions.MODIFY_SECTION, section),
-            "can_manage_slots": has_orbat_permission(user, OrbatActions.MODIFY_SECTION, section),
+            "can_edit_section": can_manage,
+            "can_manage_slots": can_manage,
         })
 
         context["breadcrumbs"] = [
@@ -46,7 +39,21 @@ class ORBATSectionDetailView(ORBATContextMixin, UnitHubDetailView):
             {"name": section.name, "url": None},
         ]
 
-        context.update(get_section_slot_context(section))
+        context["slot_snapshots"] = get_section_slot_snapshots(section)
+
+        slots_json = {}
+        for slot in context["slot_snapshots"]:
+            slots_json[slot.id] = {
+                "id": slot.id,
+                "name": slot.name,
+                "colour": slot.colour,
+                "is_officer": slot.is_officer,
+                "user_id": slot.user.id if slot.user else None,
+                "user_display_name": slot.user.display_name if slot.user else None,
+            }
+
+        context["slots_json"] = slots_json
+
         return context
 
 class ORBATSectionHistoryView(ORBATContextMixin, UnitHubListView):
@@ -85,90 +92,3 @@ class ORBATSectionEditView(ORBATContextMixin, UnitHubUpdateView):
         ]
 
         return context
-
-class ORBATSectionCreateView(ORBATContextMixin, UnitHubCreateView):
-    model = Section
-    form_class = SectionForm
-    template_name = "orbat_section_form.html"
-    context_object_name = 'section'
-
-    def dispatch(self, request, *args, **kwargs):
-        if not has_any_permission(request.user, PermissionModule.ORBAT, OrbatActions.CREATE_SECTION):
-            raise PermissionDenied
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_success_url(self):
-        return reverse("orbat_section_detail", kwargs={"section_slug": self.object.slug})
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-
-        context["breadcrumbs"] = [
-            {"name": "ORBAT", "url": "/orbat/sections/"},
-            {"name": "New Section", "url": None},
-        ]
-
-        return context
-
-def get_section_with_permission_check(request, section_slug, permission):
-    section = get_object_or_404(Section, slug=section_slug)
-    if not has_orbat_permission(request.user, permission, section):
-        raise PermissionDenied
-    return section
-
-def get_slot_for_section(request, section_slug):
-    section = get_section_with_permission_check(request, section_slug, OrbatActions.MODIFY_SECTION)
-
-    slot_id = request.GET.get("slot_id")
-    if not slot_id:
-        raise Http404("slot_id missing")
-    return get_object_or_404(SectionSlot, pk=slot_id, section=section)
-
-def save_section_slot(request, section_slug):
-    section = get_section_with_permission_check(request, section_slug, OrbatActions.MODIFY_SECTION)
-    slot_id = request.POST.get("slot_id")
-    slot = get_object_or_404(SectionSlot, pk=slot_id, section=section) if slot_id else SectionSlot(section=section)
-
-    slot.name = request.POST["name"]
-    slot.colour = request.POST.get("colour") or None
-
-    user_id = request.POST.get("user_id")
-    slot.user_id = user_id or None
-    slot.save()
-
-    # Clear existing roles
-    RoleSlotAssignment.objects.filter(
-        section_slot=slot,
-        end_date__isnull=True
-    ).update(end_date=timezone.now())
-
-    # Apply new roles
-    role_ids = request.POST.getlist("role_ids")
-    rank_id = request.POST.get("rank_id")
-
-    for rid in filter(None, [rank_id, *role_ids]):
-        RoleSlotAssignment.objects.create(
-            section_slot=slot,
-            role_id=rid
-        )
-
-    return redirect("orbat_section_detail", section_slug=section.slug)
-
-def remove_section_slot(request, section_slug):
-    slot = get_slot_for_section(request, section_slug)
-    slot.delete()
-    return redirect(request.META.get('HTTP_REFERER', f'/orbat/section/{section_slug}'))
-
-
-def slot_move_up(request, section_slug):
-    slot = get_slot_for_section(request, section_slug)
-    slot.move_up()
-    return redirect(request.META.get('HTTP_REFERER', f'/orbat/section/{section_slug}'))
-
-
-def slot_move_down(request, section_slug):
-    slot = get_slot_for_section(request, section_slug)
-    slot.move_down()
-    return redirect(request.META.get('HTTP_REFERER', f'/orbat/section/{section_slug}'))
-

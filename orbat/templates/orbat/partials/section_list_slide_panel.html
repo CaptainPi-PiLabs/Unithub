@@ -1,0 +1,60 @@
+{% extends "common/partials/base_slide_panel.html" %}
+
+{% block slidePanel %}
+<!-- Platoon create/edit -->
+<template x-if="panelMode === 'platoon'">
+  <form @submit.prevent="submitPlatoon()">
+    <h2 class="text-lg font-semibold mb-4" x-text="activePlatoon.id ? 'Edit Platoon' : 'New Platoon'"></h2>
+
+    <input type="text" placeholder="Platoon Name" class="w-full p-2 bg-base-bg text-base-text border rounded mb-4"
+           x-model="activePlatoon.name" required>
+
+    <div class="flex justify-end gap-2">
+      <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded">Save</button>
+      <button type="button" @click="closePanel()" class="px-4 py-2 bg-base-surface-dark text-base-text rounded">Cancel</button>
+    </div>
+  </form>
+</template>
+
+<!-- Section create/edit -->
+<template x-if="panelMode === 'section'">
+  <form @submit.prevent="submitSection()">
+    <h2 class="text-lg font-semibold mb-4" x-text="activeSection.id ? 'Edit Section' : 'New Section'"></h2>
+
+    <!-- Section Name -->
+    <div class="mb-2">
+      <label for="section-name" class="block font-semibold mb-1">Section Name</label>
+      <input id="section-name" type="text" x-model="activeSection.name" class="w-full p-2 bg-base-bg text-base-text border rounded" required>
+    </div>
+
+    <!-- Platoon -->
+    <div class="mb-2">
+      <label for="section-platoon" class="block font-semibold mb-1">Platoon</label>
+      <select id="section-platoon" x-model="activeSection.platoon_id" class="w-full p-2 bg-base-bg text-base-text border rounded">
+        <option value="">None</option>
+        <template x-for="platoon in platoonData" :key="platoon.id">
+          <option :value="platoon.id" x-text="platoon.name"></option>
+        </template>
+      </select>
+    </div>
+
+    <!-- Shorthand -->
+    <div class="mb-2">
+      <label for="section-shorthand" class="block font-semibold mb-1">Shorthand</label>
+      <input id="section-shorthand" type="text" x-model="activeSection.shorthand" class="w-full p-2 bg-base-bg text-base-text border rounded" required>
+    </div>
+
+    <!-- Max Size -->
+    <div class="mb-4">
+      <label for="section-max-size" class="block font-semibold mb-1">Max Size</label>
+      <input id="section-max-size" type="number" x-model="activeSection.max_size" class="w-full p-2 bg-base-bg text-base-text border rounded" required>
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded">Save</button>
+      <button type="button" @click="closePanel()" class="px-4 py-2 bg-base-surface-dark text-base-text rounded">Cancel</button>
+    </div>
+  </form>
+</template>
+
+{% endblock %}

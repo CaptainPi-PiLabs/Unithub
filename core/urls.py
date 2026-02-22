@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
-from core.views import Custom403View, Custom404View, Custom503View
+from common.views import Custom403View, Custom404View, Custom503View
 
 
 urlpatterns = [

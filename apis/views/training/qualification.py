@@ -42,7 +42,6 @@ class QualificationAPI(TrainingAPIView):
         return Response({"qualification": data})
 
     def post(self, request, *args, **kwargs):
-        print("Saving Qualification.")
         qualification = self._object
         data = request.data
         name = (data.get("name") or "").strip()
@@ -55,7 +54,6 @@ class QualificationAPI(TrainingAPIView):
         return Response({"success": True, "id": qualification.id})
 
     def delete(self, request, *args, **kwargs):
-        print("Deleting Qualification.")
         qualification = self._object
         qualification.delete()
         return Response({"success": True})
@@ -81,7 +79,7 @@ class CreateQualificationAPI(TrainingAPIView):
         except IntegrityError:
             return Response({"error": f"A qualification named '{name}' already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"success": True, "id": qualification.id})
+        return Response({"success": True, "id": qualification.pk})
 
 class QualificationMoveAPI(TrainingAPIView):
     """

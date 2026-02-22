@@ -1,13 +1,15 @@
 from django.contrib import messages
 
 
-def call_api_view(api_class, request, *args, success_message=None, **kwargs):
+def call_api_view(api_class, request, *args, method=None, success_message=None, **kwargs):
     """
         Calls an API view and returns a tuple: (response, success)
         - response: DRF Response or JsonResponse
         - success: True if status < 400 and 'success' in data
         """
     api_view = api_class.as_view()
+    if method:
+        request.method = method
     response = api_view(request, *args, **kwargs)
 
     status = getattr(response, "status_code", 200)

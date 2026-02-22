@@ -1,86 +1,76 @@
 from collections import defaultdict
 
-from django.db.models import Q, Prefetch
+from django.db.models import Prefetch
 from django.shortcuts import render
-from django.utils import timezone
 
-from core.views import UnitHubTemplateView, UnitHubListView
+from common.views import UnitHubTemplateView, UnitHubListView
 from orbat.enums import OrbatActions
-from orbat.models import SectionAssignment, Section, SectionSlot, Platoon
-from orbat.views import ORBATContextMixin
-from permissions.engine import has_orbat_permission, has_any_permission
-from permissions.models import PermissionModule
+from orbat.helpers import get_section_slot_snapshots
+from orbat.models.sections import SectionSlotAssignment, Section, Platoon
+from orbat.views.mixins import ORBATContextMixin
+from permissions.engine import has_orbat_permission
 from users.models import CustomUser, UserStatus
 
 
 class ORBATOverviewView(ORBATContextMixin, UnitHubTemplateView):
-    template_name = "orbat_overview.html"
+    template_name = "orbat/overview.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["breadcrumbs"] = [
             {"name": "ORBAT", "url": None},
         ]
-        # 1. Users in sections
-        now = timezone.now()
 
-        active_assignments = SectionAssignment.objects.filter(
-            Q(end_date__isnull=True) | Q(end_date__gt=now)
-        ).select_related("user", "section")
-
-        grouped = defaultdict(list)
+        # Build section groups with snapshots
         section_groups = []
         for section in Section.objects.order_by('platoon__order', 'order'):
-            if active_assignments.filter(section=section).exists():
-                section_slots = (SectionSlot.objects.filter(section=section).select_related('user').order_by('order'))
-                section_assignments = []
-                for slot in section_slots:
-                    if slot.user and active_assignments.filter(user=slot.user, section=section).exists():
-                        section_assignments.append({
-                            "sectionSlot": slot.name,
-                            "user": slot.user,
-                        })
-                slotted_users = {slot.user_id for slot in section_slots if slot.user}
-                for assignment in active_assignments.filter(section=section).select_related('user'):
-                    if assignment.user_id not in slotted_users:
-                        section_assignments.append({
-                            "sectionSlot": "",
-                            "user": assignment.user,
-                        })
+            section_groups.append({
+                'section': section,
+                "slots": get_section_slot_snapshots(section),
+            })
 
-                section_groups.append({
-                    'section': section,
-                    "assignments": section_assignments,
-                })
-                platoon = section.platoon or "no_platoon"
-                grouped[platoon].append(section)
+        # Group sections by platoon
+        grouped = defaultdict(list)
+        for sg in section_groups:
+            platoon = sg['section'].platoon or "no_platoon"
+            grouped[platoon].append(sg['section'])
 
         platoons = sorted(
-            [platoon for platoon in grouped.keys() if platoon != "no_platoon"],
-            key=lambda platoon: platoon.order
+            [p for p in grouped.keys() if p != "no_platoon"],
+            key=lambda p: p.order
         )
         if "no_platoon" in grouped:
             platoons.append("no_platoon")
 
-        assigned_user_ids = active_assignments.values_list("user_id", flat=True)
+        assigned_user_ids = SectionSlotAssignment.objects.filter(
+            end_date__isnull=True
+        ).values_list('user_id', flat=True)
+
         remaining_users = CustomUser.objects.exclude(id__in=assigned_user_ids)
 
         active_deltas = remaining_users.filter(status=UserStatus.ACTIVE)
         delta_reserves = remaining_users.filter(status=UserStatus.RESERVES)
-        inactive = remaining_users.exclude(status__in=[UserStatus.ACTIVE, UserStatus.RESERVES])
+        inactive_users = remaining_users.exclude(status__in=[UserStatus.ACTIVE, UserStatus.RESERVES])
 
         context.update({
             'platoon_groups': platoons,
             'section_groups': section_groups,
             'active_deltas': active_deltas,
             'delta_reserves': delta_reserves,
-            'inactive_users': inactive,
+            'inactive_users': inactive_users,
         })
+
+        context["colour_badges"] = {
+            "Gold": "bg-yellow-100 text-yellow-900 border border-yellow-300",
+            "Green": "bg-green-100 text-green-900 border border-green-300",
+            "Blue": "bg-blue-100 text-blue-900 border border-blue-300",
+            "Red": "bg-red-100 text-red-900 border border-red-300",
+        }
 
         return context
 
 class ORBATSectionListView(ORBATContextMixin, UnitHubTemplateView):
-    template_name = "orbat_section_list.html"
+    template_name = "orbat/section_list.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -97,15 +87,35 @@ class ORBATSectionListView(ORBATContextMixin, UnitHubTemplateView):
             )
         )
 
-        unassigned_sections = Section.objects.filter(
-            platoon__isnull=True
-        ).order_by("order")
+        platoon_json = {}
+        for platoon in platoons:
+            platoon_json[platoon.pk] = {
+                "id": platoon.pk,
+                "name": platoon.name,
+            }
+
+        unassigned_sections = Section.objects.filter(platoon__isnull=True).order_by("order")
+
+        sections = Section.objects.order_by("order")
+        section_json = {}
+        for section in sections:
+            section_json[section.pk] = {
+                'id': section.pk,
+                'platoon_id': section.platoon.pk if section.platoon else None,
+                'name': section.name,
+                'description': section.description,
+                'max_size': section.max_size,
+                'shorthand': section.shorthand
+            }
 
         context.update({
             "platoons": platoons,
+            "platoons_json": platoon_json,
+            "section_json": section_json,
             "unassigned_sections": unassigned_sections,
             "can_create_platoon": has_orbat_permission(user, OrbatActions.CREATE_PLATOON),
-            "can_create_section": has_any_permission(user, PermissionModule.ORBAT, OrbatActions.CREATE_SECTION),
+            "can_edit_platoon": has_orbat_permission(user, OrbatActions.MODIFY_PLATOON),
+            "can_create_section": has_orbat_permission(user, OrbatActions.CREATE_SECTION),
         })
 
         context["breadcrumbs"] = [
@@ -118,7 +128,7 @@ class ORBATSectionListView(ORBATContextMixin, UnitHubTemplateView):
 
 class ORBATMemberView(ORBATContextMixin, UnitHubListView):
     model = CustomUser
-    template_name = "orbat_members.html"
+    template_name = "orbat/members.html"
     context_object_name = "members"
 
     def get_queryset(self):

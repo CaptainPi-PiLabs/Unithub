@@ -1,0 +1,43 @@
+{% extends "common/partials/base_slide_panel.html" %}
+
+{% block slidePanel %}
+<template x-if="panelMode === 'members'">
+  <div>
+    <h3 class="text-lg font-semibold mb-4">Section Members</h3>
+
+    <template x-if="membersLoading">
+      <p class="text-gray-500">Loading…</p>
+    </template>
+
+    <template x-if="!membersLoading">
+      <ul class="space-y-2">
+        <template x-for="m in membersList" :key="m.id">
+          <li class="flex justify-between items-center p-2 bg-gray-100 rounded">
+            <span x-text="m.name"></span>
+
+            <template x-if="canManageMembers && m.id !== selfUserId">
+              <button
+                  @click="removeMember(m.id)"
+                  class="text-sm px-2 py-1 bg-red-500 text-white rounded">
+                Remove
+              </button>
+            </template>
+
+            <template x-if="m.id === selfUserId">
+              <span class="text-xs text-gray-400 italic">You</span>
+            </template>
+          </li>
+        </template>
+      </ul>
+    </template>
+
+    <div class="flex justify-end mt-4">
+      <button
+          @click="panelOpen = false"
+          class="px-4 py-2 bg-gray-300 rounded">
+        Close
+      </button>
+    </div>
+  </div>
+</template>
+{% endblock %}

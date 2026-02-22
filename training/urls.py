@@ -1,6 +1,9 @@
 from django.urls import path
 
-from training.views import *
+from training.views.api_wrappers import *
+from training.views.dashboard import TrainingHomeView
+from training.views.matrix import TrainingMatrixView
+from training.views.qualifications import QualificationsListView, QualificationDetailView
 
 urlpatterns = [
     path("", TrainingHomeView.as_view(), name="training_home"),

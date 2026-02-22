@@ -4,7 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 
 from apis.models import UserAPIKey, ServiceAPIKey
-from orbat.models import Section
+from orbat.selectors import get_section_slot
 from permissions.constants import SECTION_LEADER_ACTIONS
 from permissions.evaluation import check_policies
 from permissions.models import PermissionGrant, PermissionRule, PermissionModule
@@ -127,11 +127,11 @@ def has_any_permission(user, module, action):
         return False
 
     if (
-        module == PermissionModule.ORBAT
-        and action in SECTION_LEADER_ACTIONS
-        and Section.objects.filter(leader=user).exists()
+        module == PermissionModule.ORBAT and action in SECTION_LEADER_ACTIONS
     ):
-        return True
+        slot = get_section_slot(user)
+        if slot is not None and slot.is_leader:
+            return True
 
     try:
         rule = PermissionRule.objects.get(module=module, action=action)

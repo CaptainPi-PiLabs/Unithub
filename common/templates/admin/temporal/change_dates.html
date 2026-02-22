@@ -1,0 +1,31 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block content %}
+<h1>Change dates for {{ object }}</h1>
+
+<form method="post">
+    {% csrf_token %}
+
+    <fieldset class="module aligned">
+        <h2>Select new dates</h2>
+        {{ form.as_p }}   {# start_date and end_date prefilled #}
+    </fieldset>
+
+    {% if clashes %}
+    <fieldset class="module">
+        <h2>Impact analysis</h2>
+        <ul>
+            {% for change in clashes %}
+            <li>{{ change.obj }} → {{ change.action }}</li>
+            {% endfor %}
+        </ul>
+    </fieldset>
+    {% endif %}
+
+    <div class="submit-row">
+        <button type="submit" name="confirm" class="default">Confirm changes</button>
+        <a href=".." class="button cancel-link">Cancel</a>
+    </div>
+</form>
+{% endblock %}

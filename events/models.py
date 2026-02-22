@@ -1,7 +1,7 @@
 from django.db import models
 
-from orbat.models import Section
-from core.mixins.model_mixin import OrderedModelMixin
+from common.mixins.model_mixin import OrderedModelMixin
+from orbat.models.sections import Section
 
 
 class Campaign(models.Model):

@@ -7,7 +7,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.shortcuts import redirect
 from django.views import View
 
-from core.decorators import allow_anonymous
+from core.access.decorators import allow_anonymous
 from external_auth.backends import ExternalAccountBackend
 from external_auth.models import DiscordAccount
 from core import settings

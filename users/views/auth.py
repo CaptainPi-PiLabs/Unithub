@@ -6,8 +6,8 @@ from django.urls import reverse_lazy, reverse
 from django.utils.http import urlencode
 
 from core import settings
-from core.decorators import allow_anonymous
-from core.views import UnitHubContextMixin
+from core.access.decorators import allow_anonymous
+from common.views import UnitHubContextMixin
 
 
 def get_enabled_auth_providers():
@@ -26,7 +26,7 @@ def get_enabled_auth_providers():
 
 @allow_anonymous
 class CustomLoginView(UnitHubContextMixin, LoginView):
-    template_name = 'login.html'
+    template_name = 'auth/login.html'
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:

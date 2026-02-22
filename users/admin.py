@@ -3,6 +3,8 @@ from django.contrib import admin
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
+from django.urls import reverse
+from django.utils.html import format_html
 
 from permissions.models import PermissionGroupMembership, PermissionGroup
 from users.models import CustomUser
@@ -81,9 +83,16 @@ class CustomUserAdmin(UserAdmin):
     list_display = ("username", "email", "is_staff", "is_active", "date_joined")
 
     fieldsets = (
-        (None, {"fields": ("display_name", "username", "email", "password", "date_joined", "theme")}),
-        ("Orbat", {"fields": ("membership", "rank", "section_name", "callsign", "status")}),
-        ("Permissions", {"fields": ("is_staff", "is_active", "permission_groups")}),
+        (None, {"fields": ("display_name", "username", "email", "discord_account_link", "password", "date_joined", "theme")}),
+        ("Orbat", {"fields": ("membership", "rank", "status")}),
+        ("Site Permissions", {
+            "classes": ("collapse",),
+            "fields": ("is_active", "permission_groups")
+        }),
+        ("Admin Permissions", {
+            "classes": ("collapse",),
+            "fields": ("is_staff", "is_superuser", "groups", "user_permissions")
+        }),
     )
 
     add_fieldsets = (
@@ -92,6 +101,17 @@ class CustomUserAdmin(UserAdmin):
             "fields": ("display_name", "username", "email", "password1", "password2", "is_staff", "is_active"),
         }),
     )
+
+    readonly_fields = ("discord_account_link",)
+
+    def discord_account_link(self, obj):
+        discord_account = getattr(obj, "discordaccount_account", None)
+        if discord_account:
+            url = reverse("admin:external_auth_discordaccount_change", args=[discord_account.pk])
+            return format_html('<a href="{}">{}</a>', url, discord_account.username)
+        return "-"
+
+    discord_account_link.short_description = "Discord Account"
 
     def display_name(self, obj):
         return str(obj)

@@ -3,12 +3,34 @@ from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from orbat.models import SectionAssignment, SectionSlot, RoleSlotAssignment
+from orbat.models.sections import SectionSlot, SectionSlotAssignment, SectionSlotDetail, Section
+from timeline.models import TimelineTypes
+from timeline.utils import add_entry
 from users.models import UserStatus, CustomUser
 
 
+@receiver(post_save, sender=Section)
+def create_section_leader_slot(sender, instance, created, **kwargs):
+    if not created:
+        return
+
+    leader_slot = SectionSlot.objects.create(
+        section=instance,
+        is_leader=True,
+    )
+
+    SectionSlotDetail.objects.create(
+        slot=leader_slot,
+        name="Section Leader",
+        colour="Gold",
+        is_officer=True,
+        start_date=timezone.now().date(),
+    )
+
 def update_user_section_fields(user: CustomUser):
     """Update rank + section from assignments and roles"""
+
+    """
     if user.status == UserStatus.RETIRED:
         user.rank = None
         user.section_name = None
@@ -36,6 +58,7 @@ def update_user_section_fields(user: CustomUser):
         else:
             user.section_name = None
     user.save(update_fields=["rank", "section_name"])
+    """
 
 def cache_old_user(instance):
     if instance.pk:
@@ -66,39 +89,59 @@ def handle_user_update(instance, source=None, new_user=None):
         if source:
             log_assignment_change(user=new_user, action="added", source=source, obj=instance)
 
-# --- SectionAssignment ---
+# --- SectionSlotAssignment ---
 
-@receiver(pre_save, sender=SectionAssignment)
+@receiver(pre_save, sender=SectionSlotAssignment)
 def cache_old_user_section_assignment(sender, instance, **kwargs):
     cache_old_user(instance)
 
-@receiver([post_save, post_delete], sender=SectionAssignment)
-def update_user_on_section_assignment(sender, instance, **kwargs):
-    handle_user_update(instance, source="SectionAssignment")
+@receiver(post_save, sender=SectionSlotAssignment)
+def handle_assignment_created(sender, instance, created, **kwargs):
+    if not created:
+        return
 
-# --- SectionSlot ---
+    section = instance.slot.section
 
-@receiver(pre_save, sender=SectionSlot)
-def cache_old_user_section_slot(sender, instance, **kwargs):
-    cache_old_user(instance)
+    # Additionally log section join if applicable
+    if getattr(instance, "_is_new_section_join", False):
+        add_entry(
+            TimelineTypes.SECTION_JOINED,
+            user=instance.user,
+            section=section,
+            related_object=instance,
+        )
 
-@receiver([post_save, post_delete], sender=SectionSlot)
-def update_user_on_section_slot_change(sender, instance, **kwargs):
-    handle_user_update(instance, source="SectionSlot")
+    # Always log role assignment
+    add_entry(
+        TimelineTypes.ROLE_ASSIGNED,
+        user=instance.user,
+        section=section,
+        snapshot_name=instance.slot.get_name(),
+        related_object=instance,
+    )
 
-# --- RoleSlotAssignment ---
+@receiver(post_save, sender=SectionSlotAssignment)
+def handle_assignment_end(sender, instance, created, **kwargs):
+    if created:
+        return
 
-@receiver(pre_save, sender=RoleSlotAssignment)
-def cache_old_user_on_role_slot(sender, instance, **kwargs):
-    if instance.pk:  # existing row
-        try:
-            old_instance = RoleSlotAssignment.objects.get(pk=instance.pk)
-            instance._old_user = old_instance.section_slot.user if old_instance.section_slot else None
-        except RoleSlotAssignment.DoesNotExist:
-            instance._old_user = None
+    old = getattr(instance, "_old", None)
+    if not old:
+        return
 
-@receiver([post_save, post_delete], sender=RoleSlotAssignment)
-def update_user_on_role_slot(sender, instance, **kwargs):
-    section_slot = instance.section_slot
-    new_user = section_slot.user if section_slot and section_slot.user else None
-    handle_user_update(instance, source="RoleSlotAssignment", new_user=new_user)
+    if old.end_date is None and instance.end_date is not None:
+        add_entry(
+            TimelineTypes.SECTION_LEFT,
+            user=instance.user,
+            section=instance.slot.section,
+            related_object=instance,
+        )
+
+@receiver(post_delete, sender=SectionSlotAssignment)
+def log_section_assignment_delete(sender, instance, **kwargs):
+    log_assignment_change(
+        user=instance.user,
+        action="removed",
+        source="SectionSlotAssignment",
+        obj=instance,
+    )

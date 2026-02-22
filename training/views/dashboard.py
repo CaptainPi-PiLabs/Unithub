@@ -1,16 +1,14 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 
-from core.views import UnitHubTemplateView
-from orbat.models import Section, SectionAssignment
+from common.views import UnitHubTemplateView
 from users.views import ProfileContextMixin
-from . import TrainingContextMixin
-from users.backends import User
+from .mixins import TrainingContextMixin
 from ..models import Qualification, QualificationTrainer, UserQualification
 
 
 class TrainingHomeView(TrainingContextMixin, UnitHubTemplateView):
-    template_name = "training_home.html"
+    template_name = "training/training_home.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -23,64 +21,8 @@ class TrainingHomeView(TrainingContextMixin, UnitHubTemplateView):
 
         return context
 
-class TrainingMatrixView(TrainingContextMixin, UnitHubTemplateView):
-    template_name = "training_matrix.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        context["page_title"] = "Matrix"
-
-        context["breadcrumbs"] = [
-            {"name": "Training", "url": '/training'},
-            {"name": "Matrix", "url": None}
-        ]
-
-        section_filter = self.request.GET.get("section")
-
-        if not section_filter:
-            base_users = User.objects.filter(is_active=True)
-            context["current_section_id"] = None
-        elif section_filter == "unassigned":
-            active_assignments = SectionAssignment.objects.filter(end_date__isnull=True)
-            assigned_user_ids = active_assignments.values_list('user_id', flat=True)
-            base_users = User.objects.filter(is_active=True).exclude(id__in=assigned_user_ids)
-            context["current_section_id"] = 'unassigned'
-        else:
-            base_users = User.objects.filter(
-                id__in=SectionAssignment.objects.filter(
-                    section_id=section_filter, end_date__isnull=True
-                ).values_list("user_id", flat=True)
-            )
-            context["current_section_id"] = int(section_filter)
-
-        # Build map: {user_id: [qualification_ids]}
-        user_quals = (
-            UserQualification.objects
-            .filter(user__in=base_users, latest_passed__isnull=False)
-            .values("user_id", "qualification_id")
-        )
-
-        user_qual_map = {}
-        for uq in UserQualification.objects.all().values("user_id", "qualification_id"):
-            user_qual_map.setdefault(str(uq["user_id"]), []).append(uq["qualification_id"])
-
-        context["users"] = [
-            {
-                "id": str(user.id),  # cast to string so keys match
-                "username": user.username,
-                "qualifications": user_qual_map.get(str(user.id), []),
-            }
-            for user in base_users
-        ]
-
-        context["sections"] = Section.objects.all().order_by("name")
-        context["qualifications"] = Qualification.objects.filter(is_active=True).order_by("order")
-
-        return context
-
 class UserTrainingView(ProfileContextMixin, UnitHubTemplateView):
-    template_name = "training_user_overview.html"
+    template_name = "training/training_user_overview.html"
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user_id = kwargs.get("user_id")
