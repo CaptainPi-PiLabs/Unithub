@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from core.mixins.model_mixin import OrderedModelMixin
+from common.mixins.model_mixin import OrderedModelMixin
 from events.models import Event
 
 

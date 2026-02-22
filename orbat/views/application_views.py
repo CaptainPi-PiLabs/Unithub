@@ -1,31 +1,41 @@
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.shortcuts import redirect
+from django.core.exceptions import ValidationError, PermissionDenied
+from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse
+from django.utils.html import format_html
 from django.views import View
 
-from core.views import UnitHubTemplateView
-from orbat.models import UnitApplication, SectionApplication, Section
-from orbat.views import ORBATContextMixin
+from common.views import UnitHubTemplateView
+from orbat.enums import OrbatActions
+from orbat.models.sections import SectionApplication
+from orbat.models.unit import UnitApplication
+from orbat.selectors import get_section_slot
+from orbat.views.mixins import ORBATContextMixin
+from permissions.engine import has_orbat_permission
+from users.models import UserStatus
 
 
 class ORBATApplicationLOA(View):
-    template_name = 'orbat_section_detail.html'
+    template_name = 'orbat/section_detail.html'
 
 class ORBATApplicationJoin(View):
-    template_name = 'orbat_section_detail.html'
+    template_name = 'orbat/section_detail.html'
 
 class ORBATApplicationOverview(ORBATContextMixin, UnitHubTemplateView):
-    template_name = 'orbat_applications.html'
+    template_name = 'orbat/applications.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        if self.request.user.is_staff: #TODO Add J1 Department
+        if has_orbat_permission(self.request.user, OrbatActions.MANAGE_UNIT_APPLICATIONS):
             context['unit_application_perms'] = True
             context['unit_applications'] = UnitApplication.objects.filter(processed_date=None).order_by('date')
 
-        managed_section = Section.objects.filter(leader=self.request.user).first()
+        managed_section = None
+        slot = get_section_slot(self.request.user)
+        if slot and slot.is_leader:
+            managed_section = slot.section
 
         if self.request.user.is_staff or managed_section:
             if not managed_section:
@@ -38,7 +48,12 @@ class ORBATApplicationOverview(ORBATContextMixin, UnitHubTemplateView):
         return context
 
 class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
-    template_name = 'orbat_applications_onboarding.html'
+    template_name = 'orbat/applications_onboarding.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not has_orbat_permission(self.request.user, OrbatActions.VIEW_UNIT_APPLICATIONS):
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
 
     def _get_application(self):
         pk = self.kwargs.get("pk")
@@ -46,7 +61,7 @@ class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
             self.add_message("No application found.", level=messages.ERROR)
             return None
         try:
-            return UnitApplication.objects.get(pk=pk, processed_date__isnull=True)
+            return UnitApplication.objects.get(pk=pk, closed=False)
         except UnitApplication.DoesNotExist:
             self.add_message("Application does not exist.", level=messages.ERROR)
             return None
@@ -58,7 +73,7 @@ class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
         if app:
             context["focused_application"] = app
             other_qs = (
-                UnitApplication.objects.filter(processed_date=None)
+                UnitApplication.objects.filter(closed=False)
                 .order_by("date")[:10]
             )
 
@@ -70,12 +85,23 @@ class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
                 "over_18": app.over_18,
             }
         else:
-            other_qs = UnitApplication.objects.filter(processed_date=None).order_by("date")[:10]
+            other_qs = UnitApplication.objects.filter(closed=False).order_by("date")[:10]
         context["other_applications"] = other_qs
+
+        user = self.request.user
+        context["can_manage"] = has_orbat_permission(user, OrbatActions.MANAGE_UNIT_APPLICATIONS)
+        context["can_deny"] = has_orbat_permission(user, OrbatActions.DENY_UNIT_APPLICATIONS)
+        context["can_approve"] = app is not None and app.user is not None and has_orbat_permission(user, OrbatActions.APPROVE_UNIT_APPLICATIONS)
+
         return context
 
 
 class UnitApplicationUserManager(UnitApplicationOnboarding):
+    def dispatch(self, request, *args, **kwargs):
+        if not has_orbat_permission(request.user, OrbatActions.MANAGE_UNIT_APPLICATIONS):
+            raise PermissionDenied("You do not have permission to perform this action.")
+        return super().dispatch(request, *args, **kwargs)
+
 
     def _redirect(self, app=None):
         """Redirect back to the same page (or base page if no app)."""
@@ -117,7 +143,12 @@ class UnitApplicationUserManager(UnitApplicationOnboarding):
             if User.objects.filter(display_name=name).exists():
                 self.add_message(f"A user with the name '{name}' already exists.", level=messages.ERROR)
                 return self._redirect(app)
-            user = User.objects.create(username=name, display_name=name)
+            user = User.objects.create(
+                username=name,
+                display_name=name,
+                status=UserStatus.APPLICANT,
+                membership=None,
+            )
             app.user = user
             app.teamspeak_id = teamspeak_id
             app.over_18 = over_18
@@ -131,7 +162,7 @@ class UnitApplicationUserManager(UnitApplicationOnboarding):
                 if name:
                     user.display_name = name
                     user.username = name
-                    user.save()
+                    user.save(update_fields=["display_name", "username"])
             app.teamspeak_id = teamspeak_id
             app.over_18 = over_18
             app.save()
@@ -143,3 +174,76 @@ class UnitApplicationUserManager(UnitApplicationOnboarding):
 
         # Fallback
         return self._redirect(app)
+
+
+class UnitApplicationApproveView(ORBATContextMixin, UnitHubTemplateView):
+    def dispatch(self, request, *args, **kwargs):
+        if not has_orbat_permission(request.user, OrbatActions.MANAGE_UNIT_APPLICATIONS):
+            raise PermissionDenied("You do not have permission to perform this action.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, pk, *args, **kwargs):
+        app = get_object_or_404(UnitApplication, pk=pk, closed=False)
+
+        if not app.user:
+            messages.error(request, "Cannot approve an application without a user.")
+            return redirect("orbat_applications_onboarding", pk=pk)
+
+        try:
+            app.approve(actioned_by=request.user)
+        except ValidationError as e:
+            messages.error(request, e.message)
+            return redirect("orbat_applications_onboarding", pk=pk)
+
+        profile_url = reverse(
+            "user_profile",
+            kwargs={"user_id": app.user.pk}
+        )
+        messages.success(
+            request,
+            format_html(
+                "Application approved. User profile: <a href='{}'>{}</a>",
+                profile_url,
+                app.user.display_name,
+            )
+        )
+
+        return redirect("orbat_applications_onboarding_list")
+
+class UnitApplicationDenyView(ORBATContextMixin, UnitHubTemplateView):
+    def dispatch(self, request, *args, **kwargs):
+        if not has_orbat_permission(request.user, OrbatActions.DENY_UNIT_APPLICATIONS):
+            raise PermissionDenied("You do not have permission to perform this action.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, pk, *args, **kwargs):
+        app = get_object_or_404(UnitApplication, pk=pk, closed=False)
+
+        reason = request.POST.get("reason", "").strip()
+
+        try:
+            app.deny(actioned_by=request.user, reason=reason)
+        except ValidationError as e:
+            messages.error(request, e.message)
+            return redirect("orbat_applications_onboarding", pk=pk)
+
+        if app.user:
+            profile_url = reverse(
+                "user_profile",
+                kwargs={"user_id": app.user.pk}
+            )
+            messages.warning(
+                request,
+                format_html(
+                    "Application denied. User profile: <a href='{}'>{}</a>",
+                    profile_url,
+                    app.user.display_name,
+                )
+            )
+        else:
+            messages.warning(
+                request,
+                f"Application denied for {app.external_account.username}."
+            )
+
+        return redirect("orbat_applications_onboarding_list")

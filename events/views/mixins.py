@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from core.exceptions import WIPFeatureError
+from core.access.exceptions import WIPFeatureError
 
 
 class EventContextMixin:

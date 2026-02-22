@@ -45,7 +45,7 @@ def underscore_to_space(value):
     """Replace underscores with spaces."""
     return str(value).replace("_", " ")
 
-@register.inclusion_tag("timeline_list.html", takes_context=True)
+@register.inclusion_tag("timeline/timeline_list.html", takes_context=True)
 def render_orbat_timeline(context, user_qs=None, section=None):
     request = context.get("request")
 
@@ -70,7 +70,7 @@ def render_orbat_timeline(context, user_qs=None, section=None):
     context["entries"] = group_timeline_entries(entries)
     return context
 
-@register.inclusion_tag("timeline_list.html", takes_context=True)
+@register.inclusion_tag("timeline/timeline_list.html", takes_context=True)
 def render_training_timeline(context, user_qs=None, section=None):
 
     active_context = get_active_context(context)
@@ -93,7 +93,7 @@ def render_training_timeline(context, user_qs=None, section=None):
     context["entries"] = group_timeline_entries(entries)
     return context
 
-@register.inclusion_tag("timeline_list.html")
+@register.inclusion_tag("timeline/timeline_list.html")
 def render_timeline(user_qs=None, section=None, start_date=None, end_date=None):
     User = get_user_model()
     if user_qs is None:

@@ -7,7 +7,6 @@ from rest_framework.response import Response
 
 from apis.views.base import OrbatAPIView
 from orbat.enums import OrbatActions
-from orbat.models import Section, SectionAssignment
 
 
 User = get_user_model()

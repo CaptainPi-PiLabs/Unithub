@@ -3,10 +3,9 @@ import uuid
 from django.contrib.auth.base_user import BaseUserManager, AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
-from django.db.models import Q
 from django.utils import timezone
 
-from orbat.models import SectionAssignment, RoleSlotAssignment, SectionSlot, Section
+from timeline.utils import add_entry
 
 
 class CustomUserManager(BaseUserManager):
@@ -31,6 +30,7 @@ class CustomUserManager(BaseUserManager):
 
 class UserStatus(models.TextChoices):
     ACTIVE = 'active', 'Active'
+    APPLICANT = 'applicant', 'Applicant'
     LOA = 'loa', 'Leave of Absence'
     RESERVES = 'reserves', 'Reserves'
     RETIRED = 'retired', 'Retired'
@@ -43,8 +43,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     display_name = models.CharField(max_length=50, unique=True)
     membership = models.CharField(max_length=20, null=True, blank=True) # Prospect, Junior Operator, Operator, Veteran
     rank = models.CharField(max_length=20, null=True, blank=True) # Private, Lance Corporal, Corporal, Sergeant
-    section_name = models.CharField(max_length=50, null=True, blank=True) # Alpha, Bravo, Charlie
-    callsign = models.CharField(max_length=10, null=True, blank=True) # 1-1 A, 1-5 H
     status = models.CharField(max_length=20, choices=UserStatus.choices, default=UserStatus.ACTIVE)
 
     is_active = models.BooleanField(default=True)
@@ -65,8 +63,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     objects = CustomUserManager()
 
-    USERNAME_FIELD = 'id'
-    REQUIRED_FIELDS = ['display_name', 'username']
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['display_name']
 
     class Meta:
         ordering = ('display_name',)
@@ -82,24 +80,89 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.display_name
 
     def get_name_with_callsign(self):
-        if self.callsign:
-            return f"[{self.callsign}] - {self.get_ranked_name()}"
         return self.get_ranked_name()
 
-    def get_section(self):
-        assignment = SectionAssignment.objects.filter(
-            Q(user=self) | Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
-        ).first()
-        if assignment:
-            return assignment.section
-        return None
+    def get_section(self, date=None):
+        from orbat.helpers import get_section_for_user
+        return get_section_for_user(self, date)
 
     def save(self, *args, **kwargs):
-        if self.status == UserStatus.RETIRED:
+        if self.status == UserStatus.RETIRED or self.status == UserStatus.APPLICANT:
             self.rank = None
-            self.section = None
         else:
             # If no rank set and not retired → default to PVT
             if not self.rank:
                 self.rank = "PVT"
         super().save(*args, **kwargs)
+
+    def change_membership(self, new_tier, actioned_by=None):
+        from timeline.models import TimelineTypes
+        old = self.membership
+
+        if old == new_tier:
+            return
+
+        self.membership = new_tier
+        self.save(update_fields=["membership"])
+
+        add_entry(
+            TimelineTypes.MEMBERSHIP_TIER_CHANGED,
+            user=self,
+            description=f"{old or 'None'} → {new_tier}",
+            snapshot_name=new_tier
+        )
+
+    def change_status(self, new_status, actioned_by=None, reason=None):
+        old_status = self.status
+        if old_status == new_status:
+            return
+
+        self.status = new_status
+        self.save(update_fields=["status"])
+
+        self._log_status_transition(old_status, new_status, actioned_by, reason)
+
+    def _log_status_transition(self, old, new, actioned_by=None, reason=None):
+        from timeline.models import TimelineTypes
+
+        # Joined unit
+        if old in [UserStatus.APPLICANT, UserStatus.RETIRED] and new == UserStatus.ACTIVE:
+            add_entry(
+                TimelineTypes.UNIT_JOINED,
+                user=self,
+                description=reason or "",
+            )
+
+        # Left unit
+        if old != UserStatus.RETIRED and new == UserStatus.RETIRED:
+            add_entry(
+                TimelineTypes.UNIT_LEFT,
+                user=self,
+                description=reason or "",
+            )
+
+        # LOA
+        if new == UserStatus.LOA:
+            add_entry(
+                TimelineTypes.MOVED_TO_LOA,
+                user=self,
+            )
+
+        if old == UserStatus.LOA and new == UserStatus.ACTIVE:
+            add_entry(
+                TimelineTypes.RETURNED_FROM_LOA,
+                user=self,
+            )
+
+        # Reserves
+        if new == UserStatus.RESERVES:
+            add_entry(
+                TimelineTypes.MOVED_TO_RESERVES,
+                user=self,
+            )
+
+        if old == UserStatus.RESERVES and new == UserStatus.ACTIVE:
+            add_entry(
+                TimelineTypes.RETURNED_FROM_RESERVES,
+                user=self,
+            )

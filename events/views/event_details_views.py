@@ -1,12 +1,12 @@
 from django.core.exceptions import PermissionDenied
 
-from core.views import UnitHubDetailView, UnitHubUpdateView
+from common.views import UnitHubDetailView, UnitHubUpdateView
 from events.models import Campaign, Event
 from events.views import EventContextMixin
 
 
 class CampaignDetailView(EventContextMixin, UnitHubDetailView):
-    template_name = "campaign_detail.html"
+    template_name = "events/campaign_detail.html"
     title = "Campaign"
 
     def get_context_data(self, **kwargs):
@@ -21,7 +21,7 @@ class CampaignDetailView(EventContextMixin, UnitHubDetailView):
         return context
 
 class EventDetailView(EventContextMixin, UnitHubDetailView):
-    template_name = "event_detail.html"
+    template_name = "events/event_detail.html"
     title = "Event"
 
     def get_context_data(self, **kwargs):
@@ -39,7 +39,7 @@ class EventDetailView(EventContextMixin, UnitHubDetailView):
         return context
 
 class EventManageView(EventContextMixin, UnitHubUpdateView):
-    template_name = "event_manage.html"
+    template_name = "events/event_manage.html"
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_staff:
