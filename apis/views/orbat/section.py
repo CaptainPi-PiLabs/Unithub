@@ -94,14 +94,22 @@ class SectionDetailAPI(OrbatAPIView):
     def put(self, request, *args, **kwargs):
         section = self._object
         data = request.data
-        name = (data.get("name") or "").strip()
-        if not name:
-            return Response({"error": "Qualification name is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        section.name = name
+        section.name = (data.get("name") or "").strip()
+        section.shorthand = data.get("shorthand") or ""
+        section.description = data.get("description") or ""
+        section.max_size = data.get("max_size") or section.max_size
+
+        platoon_id = data.get("platoon_id")
+
+        if platoon_id:
+            section.platoon = get_object_or_404(Platoon, pk=platoon_id)
+        else:
+            section.platoon = None
+
         section.save()
 
-        return Response({"success": True, "id": section.pk})
+        return Response({"success": True})
 
 class MoveSectionAPI(OrbatAPIView):
     """
@@ -122,10 +130,17 @@ class MoveSectionAPI(OrbatAPIView):
 
         position = data.get("position")
         direction = data.get("direction")
+        platoon_id = data.get("platoon_id")
 
         if position is not None and direction is not None:
             return Response({"error": "Use either position or direction, not both."},
                             status=status.HTTP_400_BAD_REQUEST)
+
+        if platoon_id is not None:
+            if platoon_id == "":
+                section.platoon = None
+            else:
+                section.platoon = get_object_or_404(Platoon, pk=platoon_id)
 
         if position is not None:
             try:
@@ -134,7 +149,6 @@ class MoveSectionAPI(OrbatAPIView):
                 return Response({"error": "Invalid position"}, status=status.HTTP_400_BAD_REQUEST)
 
             section.move_to(position)
-            return Response({"success": True})
 
         if direction == "up":
             section.move_up()
@@ -144,4 +158,6 @@ class MoveSectionAPI(OrbatAPIView):
             section.move_down()
             return Response({"success": True})
 
-        return Response({"error": "No valid move operation supplied."}, status=status.HTTP_400_BAD_REQUEST)
+        section.save()
+
+        return Response({"success": True})
