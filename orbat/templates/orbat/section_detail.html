@@ -53,12 +53,12 @@
                             </button>
                         </td>
                         <td class="px-4 py-2">
-                            {% if slot.user_id %}
-                            <a href="{% url 'user_profile' slot.user_id %}" class="hover:underline">
-                                {{ slot.user_name }}
-                            </a>
+                            {% if slot.user %}
+                                <a href="{% url 'user_profile' slot.user.id %}" class="hover:underline">
+                                    {{ slot.user.display_name }}
+                                </a>
                             {% else %}
-                            <span class="text-gray-500 italic">Empty</span>
+                                <span class="text-gray-500 italic">Empty</span>
                             {% endif %}
                         </td>
                         <td class="px-4 py-2
