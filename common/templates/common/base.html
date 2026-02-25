@@ -283,9 +283,11 @@
         // Mobile sidebar toggle
         const menuToggle = document.getElementById('menu-toggle');
         const mobileMenu = document.getElementById('mobile-menu');
-        menuToggle.addEventListener('click', () => {
-            mobileMenu.classList.toggle('-translate-x-full');
-        });
+        if (menuToggle && mobileMenu) {
+            menuToggle.addEventListener('click', () => {
+                mobileMenu.classList.toggle('-translate-x-full');
+            });
+        }
 
         // User dropdown toggle
         const btn = document.getElementById('userMenuButton');
