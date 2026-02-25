@@ -133,15 +133,68 @@ class ORBATMemberView(ORBATContextMixin, UnitHubListView):
 
     def get_queryset(self):
         sort = self.request.GET.get("sort", "name")
+        status_filter = self.request.GET.get("status")
+        today = timezone.now().date()
 
+        current_section = (
+            SectionSlotAssignment.objects
+            .filter(
+                user=OuterRef("pk"),
+                start_date__lte=today,
+            )
+            .filter(
+                Q(end_date__isnull=True) | Q(end_date__gte=today)
+            )
+            .order_by("-start_date")
+            .values(
+                "slot__section__name",
+                "slot__section__slug"
+            )[:1]
+        )
+
+        qs = CustomUser.objects.annotate(
+            section_name=Subquery(current_section.values("slot__section__name")),
+            section_slug=Subquery(current_section.values("slot__section__slug")),
+        )
+
+        search = self.request.GET.get("search")
+
+        if search:
+            qs = qs.filter(
+                Q(display_name__icontains=search) |
+                Q(username__icontains=search)
+            )
+
+        # ---- FILTERING ----
+        if status_filter:
+            if status_filter == "inactive":
+                qs = qs.filter(is_active=False)
+            if status_filter == "retired":
+                qs = qs.filter(status=UserStatus.RETIRED)
+            elif status_filter == "prospective":
+                qs = qs.filter(status=UserStatus.APPLICANT)
+            elif status_filter == "active_delta":
+                qs = qs.filter(status="active", section_name__isnull=True)
+            elif status_filter == "section_member":
+                qs = qs.filter(section_name__isnull=False)
+            elif status_filter == "delta_reserve":
+                qs = qs.filter(status=UserStatus.RESERVES)
+            elif status_filter == "loa":
+                qs = qs.filter(status=UserStatus.LOA)
+        else:
+            qs = qs.filter(is_active=True)
+
+        # ---- SORTING ----
         order_map = {
             "rank": "rank",
             "name": "display_name",
             "section": "section_name",
+            "status": "status",
         }
 
         order_field = order_map.get(sort, "display_name")
-        return CustomUser.objects.all().order_by(order_field)
+
+        return qs.order_by(order_field)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -157,7 +210,7 @@ class ORBATMemberView(ORBATContextMixin, UnitHubListView):
         if self.request.headers.get("HX-Request") == "true":
             return render(
                 self.request,
-                "partials/members_table.html",
+                "orbat/partials/members_table.html",
                 context,
                 **response_kwargs,
             )
