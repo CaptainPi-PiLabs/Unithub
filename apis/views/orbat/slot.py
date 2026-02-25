@@ -124,7 +124,6 @@ class SlotDetailAPI(OrbatAPIView):
         slot = get_object_or_404(SectionSlot, pk=slot_id, section=section)
 
         data = request.data
-        print(data)
         name = (data.get("name") or "").strip()
         colour = data.get("colour")
         is_officer = bool(data.get("is_officer"))

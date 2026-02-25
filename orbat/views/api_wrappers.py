@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.views.decorators.http import require_POST
 
@@ -57,10 +58,8 @@ def edit_section(request, section_id):
         request,
         method="PUT",
         section_id=section_id,
-        success_message="Changes saved."
     )
-    section = Section.objects.get(pk=section_id)
-    return redirect("orbat_section_detail", section_slug=section.slug)
+    return redirect("orbat_section_list")
 
 @require_POST
 def move_section(request, section_id):

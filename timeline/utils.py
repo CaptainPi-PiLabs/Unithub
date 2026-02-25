@@ -11,7 +11,6 @@ from timeline.models import TimelineEntry, TimelineTypes
 
 
 def add_entry(event_type, user, section=None, description="", snapshot_name="", related_object=None, created_by=None, timestamp=None):
-    print("Creating timeline event")
     entry = TimelineEntry(
         event_type=event_type,
         user=user,
