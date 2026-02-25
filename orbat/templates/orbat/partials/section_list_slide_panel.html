@@ -33,7 +33,7 @@
       <select id="section-platoon" x-model="activeSection.platoon_id" class="w-full p-2 bg-base-bg text-base-text border rounded">
         <option value="">None</option>
         <template x-for="platoon in platoonData" :key="platoon.id">
-          <option :value="platoon.id" x-text="platoon.name"></option>
+          <option :value="String(platoon.id)" x-text="platoon.name"></option>
         </template>
       </select>
     </div>

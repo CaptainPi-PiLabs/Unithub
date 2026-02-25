@@ -25,7 +25,16 @@
     {% for platoon in platoons %}
     <div class="border rounded bg-base-surface">
         <div class="flex items-center justify-between px-4 py-3 border-b bg-base-surface-dark">
-            <h2 class="text-lg font-semibold">{{ platoon.name }}</h2>
+            <h2 class="text-lg font-semibold">
+                <span
+                    {% if can_edit_platoon %}
+                    class="cursor-pointer hover:underline transition"
+                    @click="openPlatoon({{ platoon.id }})"
+                    {% endif %}
+                >
+                    {{ platoon.name }}
+                </span>
+            </h2>
             <div class="flex gap-2">
                 {% if can_edit_platoon %}
                 <button @click="openPlatoon({{ platoon.id }})"
@@ -36,11 +45,10 @@
             </div>
         </div>
 
-        {% if platoon.sections.all %}
-        <ul class="divide-y">
+        <ul class="divide-y section-sortable" data-platoon-id="{{ platoon.id }}" id="platoon-list-{{ platoon.id }}">
             {% for section in platoon.sections.all %}
-            <li class="px-4 py-3 flex items-center justify-between hover:bg-base-surface-dark transition">
-                <div>
+            <li class="group px-4 py-3 flex items-center justify-between hover:bg-base-surface-dark transition" data-id="{{ section.pk }}">
+                <div class="flex-1">
                     <a href="{% url 'orbat_section_detail' section.slug %}" class="font-medium hover:underline">
                         {{ section.name }}
                     </a>
@@ -48,20 +56,25 @@
                     <p class="text-sm text-base-muted">{{ section.description }}</p>
                     {% endif %}
                 </div>
-                <div class="flex gap-2 text-sm">
-                    <a href="{% url 'orbat_section_detail' section.slug %}" class="text-blue-500 hover:underline">View</a>
-                    {% if can_edit_platoon %}
-                    <button @click="moveSection('{{ section.pk }}', 'up')" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" title="Move Up">⬆️</button>
-                    <button @click="moveSection('{{ section.pk }}', 'down')" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" title="Move Down">⬇️</button>
-                    <button @click="openSection('{{ section.pk }}')" class="text-yellow-500 hover:underline">Edit</button>
-                    {% endif %}
+                {% if can_edit_platoon %}
+                <div class="flex items-center gap-2 ml-auto opacity-0 group-hover:opacity-100 transition">
+                    <button @click="openSection('{{ section.pk }}')"
+                            class="text-yellow-500 hover:underline text-sm">
+                        Edit
+                    </button>
+                    <div class="drag-handle cursor-grab text-gray-400 dark:text-gray-500 hover:text-gray-200">
+                        ☰
+                    </div>
                 </div>
+                {% endif %}
+            </li>
+
+            {% empty %}
+            <li class="px-4 py-6 text-base-muted italic text-center">
+                No sections in this platoon
             </li>
             {% endfor %}
         </ul>
-        {% else %}
-        <div class="px-4 py-3 text-base-muted italic">No sections in this platoon.</div>
-        {% endif %}
     </div>
     {% endfor %}
 
@@ -71,18 +84,28 @@
         <div class="px-4 py-3 border-b bg-base-surface-dark">
             <h2 class="text-lg font-semibold">Unassigned Sections</h2>
         </div>
-        <ul class="divide-y">
+        <ul class="divide-y section-sortable" data-platoon-id="" id="platoon-list-unassigned">
             {% for section in unassigned_sections %}
-            <li class="px-4 py-3 flex justify-between items-center">
-                <span>{{ section.name }}</span>
-                <div class="flex gap-2">
-                    <a href="{% url 'orbat_section_detail' section.slug %}" class="text-blue-500 hover:underline text-sm">View</a>
-                    {% if can_create_section %}
-                    <button @click="moveSection('{{ section.pk }}', 'up')" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" title="Move Up">⬆️</button>
-                    <button @click="moveSection('{{ section.pk }}', 'down')" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300" title="Move Down">⬇️</button>
-                    <button @click="openSection('{{ section.pk }}')" class="text-yellow-500 hover:underline text-sm">Edit</button>
+            <li class="group px-4 py-3 flex items-center justify-between hover:bg-base-surface-dark transition" data-id="{{ section.pk }}">
+                <div>
+                    <a href="{% url 'orbat_section_detail' section.slug %}" class="font-medium hover:underline">
+                        {{ section.name }}
+                    </a>
+                    {% if section.description %}
+                    <p class="text-sm text-base-muted">{{ section.description }}</p>
                     {% endif %}
                 </div>
+                {% if can_edit_platoon %}
+                <div class="flex items-center gap-2 ml-auto opacity-0 group-hover:opacity-100 transition">
+                    <button @click="openSection('{{ section.pk }}')"
+                            class="text-yellow-500 hover:underline text-sm">
+                        Edit
+                    </button>
+                    <div class="drag-handle cursor-grab text-gray-400 dark:text-gray-500 hover:text-gray-200">
+                        ☰
+                    </div>
+                </div>
+                {% endif %}
             </li>
             {% endfor %}
         </ul>
@@ -98,6 +121,8 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
 <script>
 function orbatSectionsPage() {
     return {
@@ -107,6 +132,53 @@ function orbatSectionsPage() {
         activeSection: {},     // {id, name, platoon_id, description, shorthand, max_size}
         platoonData: JSON.parse(document.getElementById("platoons_json").textContent),
         sectionData: JSON.parse(document.getElementById("section_json").textContent),
+
+        init() {
+            this.initDrag();
+        },
+
+        initDrag() {
+            if (typeof Sortable === "undefined") {
+                setTimeout(() => this.initDrag(), 50);
+                return;
+            }
+
+            document.querySelectorAll(".section-sortable").forEach(el => {
+
+                Sortable.create(el, {
+                    group: "sections",
+                    animation: 150,
+                    handle: ".drag-handle",
+                    emptyInsertThreshold: 10,
+
+                    onEnd: (evt) => {
+                        const sectionId = evt.item.dataset.id;
+                        const newPlatoonId = evt.to.dataset.platoonId !== undefined
+                            ? evt.to.dataset.platoonId
+                            : "";
+                        const newIndex = evt.newIndex + 1;
+
+                        fetch(`/orbat/section/${sectionId}/move/`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRFToken": this.csrfToken()
+                            },
+                            body: JSON.stringify({
+                                platoon_id: newPlatoonId,
+                                position: newIndex
+                            })
+                        }).then(res => {
+                            if (!res.ok) {
+                                location.reload();
+                            }
+                        });
+
+                    }
+                });
+
+            });
+        },
 
         openPlatoon(platoon_id = null) {
             this.panelMode = 'platoon';
@@ -120,17 +192,28 @@ function orbatSectionsPage() {
 
         openSection(section_id = null) {
             this.panelMode = 'section';
+
             if (section_id && this.sectionData[section_id]) {
-                this.activeSection = {...this.sectionData[section_id]};
+                const section = this.sectionData[section_id];
+                this.activeSection = {
+                    id: section.id,
+                    name: section.name || "",
+                    platoon_id: section.platoon_id !== null ? section.platoon_id : "",
+                    description: section.description || "",
+                    shorthand: section.shorthand || "",
+                    max_size: section.max_size || ""
+                };
+
             } else {
                 this.activeSection = {
-                    name: '',
-                    platoon_id: '',
-                    description: '',
-                    shorthand: '',
-                    max_size: ''
+                    name: "",
+                    platoon_id: "",
+                    description: "",
+                    shorthand: "",
+                    max_size: ""
                 };
             }
+
             this.panelOpen = true;
         },
 
@@ -156,19 +239,15 @@ function orbatSectionsPage() {
                 ? `/orbat/section/${this.activeSection.id}/edit/`
                 : '/orbat/section/create/';
             const formData = new FormData();
-            for (const key in this.activeSection) {
-                formData.append(key, this.activeSection[key] || '');
-            }
-
-            fetch(url, {method: 'POST', headers: {"X-CSRFToken": this.csrfToken()}, body: formData})
-        },
-
-        moveSection(sectionId, direction) {
-            fetch(`/orbat/section/${sectionId}/move/`, {
+            fetch(url, {
                 method: "POST",
-                headers: {"Content-Type": "application/json","X-CSRFToken": this.csrfToken()},
-                body: JSON.stringify({direction}),
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": this.csrfToken()
+                },
+                body: JSON.stringify(this.activeSection)
             })
+            .then(() => window.location.reload());
         },
 
         csrfToken() {

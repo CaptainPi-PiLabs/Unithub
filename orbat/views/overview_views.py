@@ -100,13 +100,14 @@ class ORBATSectionListView(ORBATContextMixin, UnitHubTemplateView):
         sections = Section.objects.order_by("order")
         section_json = {}
         for section in sections:
-            section_json[section.pk] = {
-                'id': section.pk,
-                'platoon_id': section.platoon.pk if section.platoon else None,
-                'name': section.name,
-                'description': section.description,
-                'max_size': section.max_size,
-                'shorthand': section.shorthand
+            section_json[str(section.pk)] = {
+                "id": str(section.pk),
+                "platoon_id": str(section.platoon.pk) if section.platoon else "",
+                "platoon_name": section.platoon.name if section.platoon else "",
+                "name": section.name,
+                "description": section.description,
+                "max_size": section.max_size,
+                "shorthand": section.shorthand
             }
 
         context.update({
