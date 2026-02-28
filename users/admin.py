@@ -141,7 +141,7 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
-    readonly_fields = ("discord_account_link", "unit_membership_link", "current_membership_display")
+    readonly_fields = ("is_superuser", "discord_account_link", "unit_membership_link", "current_membership_display")
 
     def discord_account_link(self, obj):
         discord_account = getattr(obj, "discordaccount_account", None)
