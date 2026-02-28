@@ -144,6 +144,8 @@ class SectionSlotDetail(TemporalRange):
             ("Red", "Red"),
             ("Blue", "Blue"),
         ],
+        null=True,
+        blank=True,
     )
 
     is_officer = models.BooleanField(default=False)
