@@ -39,7 +39,7 @@ class SectionSlotInline(OrderedModelAdminMixin, admin.TabularInline):
     show_change_link = True
     template = "admin/temporal/tabular_inline.html"
 
-    fields = ("slot_name", "current_user", "move_up", "move_down")
+    fields = ("slot_name", "current_user", "order", "move_up", "move_down")
     readonly_fields = ("slot_name", "current_user", "move_up", "move_down")
 
     def slot_name(self, obj):
@@ -175,6 +175,7 @@ class SectionSlotAssignmentInline(BaseTemporalInline):
 class SectionSlotAdmin(OrderedAdminMixin, admin.ModelAdmin):
     list_display = ("section", "current_name", "order", "is_leader")
     readonly_fields = ("section","is_leader")
+    filter = ("section",)
 
     inlines = [
         SectionSlotDetailInline,
