@@ -169,7 +169,7 @@ class SectionSlotDetailInline(BaseTemporalInline):
 class SectionSlotAssignmentInline(BaseTemporalInline):
     model = SectionSlotAssignment
     fields = ("user","start_date", "end_date")
-    autocomplete_fields = ("user",)
+    autocomplete_fields = ("user__username",)
 
 @admin.register(SectionSlot)
 class SectionSlotAdmin(admin.ModelAdmin):
