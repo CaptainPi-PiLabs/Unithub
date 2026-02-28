@@ -1,5 +1,5 @@
-from django import forms
 from django.contrib import admin
+from django.db import transaction
 from django.forms import modelform_factory
 from django.shortcuts import redirect
 from django.template.response import TemplateResponse
@@ -15,9 +15,6 @@ class BaseTemporalInline(admin.TabularInline):
 
     date_fields = ("start_date", "end_date")
 
-    def get_readonly_fields(self, request, obj=None):
-        return self.date_fields
-
     def get_max_num(self, request, obj=None, **kwargs):
         return 20
 
@@ -28,7 +25,7 @@ class BaseTemporalInline(admin.TabularInline):
 
 class BaseTemporalAdmin(admin.ModelAdmin):
     change_date_template = "admin/temporal/change_dates.html"
-    readonly_fields = ("start_date", "end_date", "change_dates_link")
+    readonly_fields = ("change_dates_link")
     fields = ("start_date", "end_date", "change_dates_link")
 
     def get_urls(self):
@@ -56,18 +53,31 @@ class BaseTemporalAdmin(admin.ModelAdmin):
             if form.is_valid():
                 new_obj = form.save(commit=False)
 
-                clashes = obj.__class__.objects.analyze_clashes(new_obj)
+                clashes = self.model.objects.analyze_clashes(new_obj)
 
                 if not clashes:
                     new_obj.save()
                     self.message_user(request, "Dates updated successfully")
-                    return redirect("..")
+                    return redirect(
+                        reverse(
+                            f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_change",
+                            args=[obj.pk],
+                        )
+                    )
 
                 if "confirm" in request.POST:
-                    obj.__class__.objects.resolve_by_trimming(new_obj)
-                    new_obj.save()
+                    with transaction.atomic():
+                        self.model.objects.resolve_by_trimming(new_obj)
+                        new_obj.save()
+
                     self.message_user(request, "Dates updated successfully")
-                    return redirect("..")
+
+                    return redirect(
+                        reverse(
+                            f"admin:{self.model._meta.app_label}_{self.model._meta.model_name}_change",
+                            args=[obj.pk],
+                        )
+                    )
 
                 return TemplateResponse(
                     request,

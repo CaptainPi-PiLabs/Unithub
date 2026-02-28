@@ -2,7 +2,9 @@ import datetime
 from dataclasses import dataclass
 from typing import Optional
 
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.db.models import Q
 
 
 @dataclass
@@ -15,33 +17,40 @@ class TemporalChange:
     new_end: Optional[datetime.date]
 
 class TemporalQuerySet(models.QuerySet):
-    def overlapping_for(self, instance):
-        return instance.get_overlap_queryset()
+
+    def overlaps(self, instance):
+        qs = self
+        qs = qs.exclude(pk=instance.pk)
+        qs = qs.filter(
+            Q(start_date__lte=instance.end_date or datetime.date.max) &
+            Q(
+                Q(end_date__isnull=True) |
+                Q(end_date__gte=instance.start_date)
+            )
+        )
+
+        for field in getattr(instance, "non_overlapping_fields", []):
+            qs = qs.filter(**{field: getattr(instance, field)})
+
+        return qs
 
     def analyze_clashes(self, instance):
         """
             Returns a list describing what WOULD change if this entry were applied.
             Does not modify the database.
             """
-        print("ANALYZE CLASHES", instance.start_date, instance.end_date)
         changes = []
-        overlaps = instance.get_overlap_queryset().order_by("start_date")
+        overlaps = self.overlaps(instance).order_by("start_date")
+
+        instance_start = instance.start_date
+        instance_end = instance.end_date or datetime.date.max
 
         for overlap in overlaps:
-            print("Overlap: ", overlap)
-            print("Target dates: ", overlap.start_date, overlap.end_date)
+            overlap_start = overlap.start_date
+            overlap_end = overlap.end_date or datetime.date.max
+
             # Fully enclosed → delete
-            if (
-                    instance.start_date <= overlap.start_date and
-                    (
-                            instance.end_date is None or
-                            (
-                                    overlap.end_date is not None and
-                                    overlap.end_date <= instance.end_date
-                            )
-                    )
-            ):
-                print("Overlap was fulling enclosed")
+            if instance_start <= overlap_start and instance_end >= overlap_end:
                 changes.append(TemporalChange(
                     obj=overlap,
                     action="delete",
@@ -53,8 +62,7 @@ class TemporalQuerySet(models.QuerySet):
                 continue
 
             # Trim right: overlap starts before new range
-            if overlap.start_date < instance.start_date:
-                print("Trimming overlap to the right")
+            if overlap_start < instance_start and overlap_end >= instance_start:
                 changes.append(TemporalChange(
                     obj=overlap,
                     action="trim_right",
@@ -66,14 +74,7 @@ class TemporalQuerySet(models.QuerySet):
                 continue
 
             # Trim left: overlap ends after new range
-            if (
-                    instance.end_date is not None and
-                    (
-                            overlap.end_date is None or
-                            overlap.end_date > instance.end_date
-                    )
-            ):
-                print("Trimming overlap to the left")
+            if instance_start < overlap_end and instance_end >= overlap_start:
                 changes.append(TemporalChange(
                     obj=overlap,
                     action="trim_left",
@@ -84,6 +85,29 @@ class TemporalQuerySet(models.QuerySet):
                 ))
 
         return changes
+
+    def create_temporal(self, **kwargs):
+        instance = self.model(**kwargs)
+        clashes = self.analyze_clashes(instance)
+        if clashes:
+            raise ValidationError("Temporal conflict detected")
+        instance.save()
+        return instance
+
+    def active_at(self, date=None):
+        date = date or datetime.date.today()
+        return self.filter(
+            start_date__lte=date
+        ).filter(
+            Q(end_date__isnull=True) |
+            Q(end_date__gte=date)
+        )
+
+    def history_for(self, **kwargs):
+        qs = self
+        for field, value in kwargs.items():
+            qs = qs.filter(**{field: value})
+        return qs.order_by("-start_date")
 
 class TemporalManager(models.Manager):
     def get_queryset(self):
@@ -97,7 +121,7 @@ class TemporalManager(models.Manager):
             changes = self.analyze_clashes(instance)
 
             for change in changes:
-                obj = change.obj
+                obj = self.get_queryset().select_for_update().get(pk=change.obj.pk)
 
                 if change.action == "delete":
                     obj.delete()

@@ -22,65 +22,44 @@ class TemporalRange(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Optional: restrict overlap scope (e.g. per slot, per role)
-    non_overlapping_fields = []
+    non_overlapping_fields = None
 
     class Meta:
         abstract = True
         ordering = ["-start_date"]
+        indexes = [
+            models.Index(fields=["start_date"]),
+            models.Index(fields=["end_date"]),
+        ]
 
     def is_active(self, date=None):
-        if date is None:
-            date = timezone.now().date()
+        date = date or timezone.now().date()
         return (
             self.start_date <= date and
             (self.end_date is None or self.end_date >= date)
         )
 
     def clean(self):
+        super().clean()
+
+        if self.non_overlapping_fields is None:
+            raise NotImplementedError(
+                f"{self.__class__.__name__} must define non_overlapping_fields"
+            )
+
         if self.end_date and self.end_date < self.start_date:
             raise ValidationError("end_date cannot be before start_date")
 
+        clashes = self.__class__.objects.analyze_clashes(self)
+        if clashes:
+            raise ValidationError(
+                "Date range conflicts with existing history. "
+                "Use 'Change dates' to automatically resolve conflicts."
+            )
+
     def save(self, *args, **kwargs):
-        from django.db import transaction
-
-        if self.start_date is None:
-            self.start_date = timezone.now().date()
-
         self.full_clean()
-
         return super().save(*args, **kwargs)
-
-    def get_overlap_queryset(self, *, start_date=None, end_date=None):
-        """
-        Returns queryset of overlapping rows (excluding self).
-        """
-        start = start_date or self.start_date
-        end = end_date if end_date is not None else self.end_date
-
-        filters = Q()
-        for field in self.non_overlapping_fields:
-            value = getattr(self, field)
-            if value is None:
-                filters &= Q(**{f"{field}__isnull": True})
-            else:
-                filters &= Q(**{field: value})
-
-        qs = self.__class__.objects.filter(filters).exclude(pk=self.pk)
-
-        if end:
-            return qs.filter(
-                Q(end_date__isnull=True, start_date__lte=end) |
-                Q(start_date__lte=end, end_date__gte=start)
-            )
-        else:
-            return qs.filter(
-                Q(end_date__isnull=True) |
-                Q(end_date__gte=start)
-            )
-
-    def check_for_clashes(self):
-        return self.get_overlap_queryset()
 
 class ApplicationBase(models.Model):
     STATUS_PENDING = "pending"

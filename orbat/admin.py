@@ -210,8 +210,6 @@ class SectionSlotAssignmentAdmin(BaseTemporalAdmin):
 
     readonly_fields = (
         "first_joined",
-        "start_date",
-        "end_date",
         "change_dates_link",
     )
 
