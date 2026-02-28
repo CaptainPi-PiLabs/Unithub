@@ -115,6 +115,10 @@ class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
     list_display = ("username", "email", "is_staff", "is_active", "date_joined")
     inlines = [SectionSlotAssignmentInline,]
+    search_fields = (
+        "username",
+        "display_name",
+    )
 
     fieldsets = (
         (None, {"fields": ("display_name", "username", "email", "discord_account_link", "password", "date_joined", "theme")}),
