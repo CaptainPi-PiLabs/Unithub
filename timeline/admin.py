@@ -7,3 +7,5 @@ from timeline.models import TimelineEntry
 @admin.register(TimelineEntry)
 class TimelineEntryAdmin(admin.ModelAdmin):
     list_display = ('user', 'section', 'event_type', 'snapshot_name', 'timestamp')
+    list_filter = ('section',)
+    search_fields = ['user__display_name']
