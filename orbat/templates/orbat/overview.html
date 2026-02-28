@@ -84,7 +84,7 @@
 {% if active_deltas %}
 <div class="mb-6">
     <h2 class="font-semibold mt-8 mb-4 text-base-text">Active Delta</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
         {% for user in active_deltas %}
             <div class="p-4 bg-base-surface shadow rounded border border-base-border">
                 <a href="{% url 'user_profile' user.id %}" class="text-base-text hover:underline">{{ user.get_ranked_name }}</a>
@@ -98,7 +98,7 @@
 {% if delta_reserves %}
 <div class="mb-4">
     <h2 class="font-semibold mt-8 mb-4 text-base-text">Delta Reserves</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
         {% for user in delta_reserves %}
             <div class="p-4 bg-base-surface dark:bg-gray-800 shadow rounded border border-base-border">
                 <a href="{% url 'user_profile' user.id %}" class="text-base-text hover:underline">{{ user.get_ranked_name }}</a>
@@ -112,7 +112,7 @@
 {% if inactive_users %}
 <div class="mb-4">
     <h2 class="font-semibold mb-4 text-base-text">Inactive / Retired</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
         {% for user in inactive_users %}
             <div class="p-4 bg-base-surface dark:bg-gray-800 shadow rounded border border-base-border text-base-text">
                 {{ user.display_name }}
