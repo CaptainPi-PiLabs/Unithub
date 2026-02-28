@@ -4,11 +4,12 @@ from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.urls import reverse
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
+from django.utils.safestring import mark_safe
 
 from orbat.models.sections import SectionSlotAssignment
 from permissions.models import PermissionGroupMembership, PermissionGroup
-from users.models import CustomUser
+from users.models import CustomUser, MembershipPromotions, UnitMembership
 
 
 class SectionSlotAssignmentInline(admin.TabularInline):
@@ -121,8 +122,8 @@ class CustomUserAdmin(UserAdmin):
     )
 
     fieldsets = (
-        (None, {"fields": ("display_name", "username", "email", "discord_account_link", "password", "date_joined", "theme")}),
-        ("Orbat", {"fields": ("membership", "rank", "status")}),
+        (None, {"fields": ("display_name", "username", "email", "unit_membership_link", "discord_account_link", "password", "date_joined", "theme")}),
+        ("Orbat", {"fields": ("current_membership_display", "rank", "status")}),
         ("Site Permissions", {
             "classes": ("collapse",),
             "fields": ("is_active", "permission_groups")
@@ -140,7 +141,7 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
-    readonly_fields = ("discord_account_link",)
+    readonly_fields = ("discord_account_link", "unit_membership_link", "current_membership_display")
 
     def discord_account_link(self, obj):
         discord_account = getattr(obj, "discordaccount_account", None)
@@ -151,6 +152,32 @@ class CustomUserAdmin(UserAdmin):
 
     discord_account_link.short_description = "Discord Account"
 
+    def unit_membership_link(self, obj):
+        memberships = UnitMembership.get_for_user(obj)
+        if not memberships.exists():
+            add_url = (reverse("admin:users_unitmembership_add") + f"?user={obj.pk}")
+            return format_html('<a class="button" href="{}">Add Membership</a>', add_url)
+
+        links = []
+
+        for membership in memberships:
+            url = reverse("admin:users_unitmembership_change", args=[membership.pk])
+            links.append((url, membership.date_range_display()))
+
+        return format_html_join(
+            mark_safe("<br>"),
+            '<a href="{}">{}</a>',
+            links
+        )
+
+    unit_membership_link.short_description = "Unit Membership"
+
+    def current_membership_display(self, obj):
+        return obj.get_current_membership_display()
+
+    current_membership_display.short_description = "Current Membership"
+
+
     def display_name(self, obj):
         return str(obj)
 
@@ -159,3 +186,19 @@ class CustomUserAdmin(UserAdmin):
         if not obj.password:
             obj.set_unusable_password()
         super().save_model(request, obj, form, change)
+
+class MembershipPromotionsInline(admin.TabularInline):
+    model = MembershipPromotions
+    extra = 0
+    fields = ("rank", "date_awarded")
+
+@admin.register(UnitMembership)
+class UnitMembershipAdmin(admin.ModelAdmin):
+    list_display = ("user", "start_date", "end_date")
+    inlines = (MembershipPromotionsInline, )
+    autocomplete_fields = ("user",)
+
+    search_fields = (
+        "user__username",
+        "user__display_name",
+    )

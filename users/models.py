@@ -33,21 +33,45 @@ class CustomUserManager(BaseUserManager):
 class UnitMembership(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     start_date = models.DateField()
-    end_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.display_name} ({self.date_range_display()})"
+
+    def date_range_display(self):
+        end_text = self.end_date or "Current"
+        return f"{self.start_date} - {end_text}"
+
+    @classmethod
+    def get_for_user(cls, user):
+        return cls.objects.filter(user=user).order_by('-start_date')
+
+    @classmethod
+    def get_current_for_user(cls, user):
+        return cls.objects.filter(user=user, end_date__isnull=True).first()
+
+class MembershipRanks(models.TextChoices):
+    JUNIOR_OPERATOR = 'junior', 'Junior Operator'
+    OPERATOR = 'operator', 'Operator'
+    VETERAN = 'veteran', 'Veteran'
 
 class MembershipPromotions(models.Model):
     membership = models.ForeignKey(UnitMembership, on_delete=models.CASCADE, related_name="promotions")
-    rank = models.CharField(max_length=20)
+    rank = models.CharField(max_length=20, choices=MembershipRanks.choices)
     date_awarded = models.DateField()
 
     class Meta:
         ordering = ["date_awarded"]
+        verbose_name_plural = "Membership Promotions"
         constraints = [
             models.UniqueConstraint(
                 fields=["membership", "rank"],
                 name="unique_rank_per_membership"
             )
         ]
+
+    def __str__(self):
+        return f"{self.membership.user} - {self.get_rank_display()}"
 
     def clean(self):
         if self.date_awarded < self.membership.start_date:
@@ -108,22 +132,16 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             return f"{self.rank} {self.display_name}"
         return self.display_name
 
-    def get_current_rank(self):
-        membership = (
-            UnitMembership.objects.filter(user=self, end_date__isnull=True).first()
-        )
+    def get_current_membership_display(self):
+        membership = UnitMembership.get_current_for_user(self)
         if not membership:
-            if self.status == UserStatus.APPLICANT:
-                return "Applicant"
-            if self.status == UserStatus.RETIRED:
-                return "Retired"
-            return None
+            return "-"
 
-        promotion = membership.promotions.order_by("-date_awarded").first()
+        promotion = membership.promotions.order_by('-date_awarded').first()
         if promotion:
-            return str(promotion.rank)
-        return "Prospect"
+            return promotion.get_rank_display()
 
+        return "Prospective"
 
     def get_name_with_callsign(self):
         return self.get_ranked_name()
