@@ -114,7 +114,7 @@ class CustomUserChangeForm(forms.ModelForm):
 class CustomUserAdmin(UserAdmin):
     form = CustomUserChangeForm
     add_form = CustomUserCreationForm
-    list_display = ("username", "email", "is_staff", "is_active", "date_joined")
+    list_display = ("username", "email", "is_staff", "is_active")
     inlines = [SectionSlotAssignmentInline,]
     search_fields = (
         "username",
@@ -122,7 +122,7 @@ class CustomUserAdmin(UserAdmin):
     )
 
     fieldsets = (
-        (None, {"fields": ("display_name", "username", "email", "unit_membership_link", "discord_account_link", "password", "date_joined", "theme")}),
+        (None, {"fields": ("display_name", "username", "email", "unit_membership_link", "discord_account_link", "password", "theme")}),
         ("Orbat", {"fields": ("current_membership_display", "rank", "status")}),
         ("Site Permissions", {
             "classes": ("collapse",),
