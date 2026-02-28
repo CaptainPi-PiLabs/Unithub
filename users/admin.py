@@ -6,8 +6,41 @@ from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.urls import reverse
 from django.utils.html import format_html
 
+from orbat.models.sections import SectionSlotAssignment
 from permissions.models import PermissionGroupMembership, PermissionGroup
 from users.models import CustomUser
+
+
+class SectionSlotAssignmentInline(admin.TabularInline):
+    model = SectionSlotAssignment
+    fk_name = "user"
+    classes = ('collapse',)
+    extra = 0
+    can_delete = False
+    ordering = ("-start_date",)
+
+    fields = (
+        "section_link",
+        "slot",
+        "start_date",
+        "end_date",
+    )
+
+    readonly_fields = fields
+
+    def section_link(self, obj):
+        if not obj.slot or not obj.slot.section:
+            return "-"
+        url = reverse(
+            "admin:orbat_section_change",
+            args=[obj.slot.section.pk]
+        )
+        return format_html('<a href="{}">{}</a>', url, obj.slot.section)
+
+    section_link.short_description = "Section"
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 class CustomUserCreationForm(forms.ModelForm):
@@ -81,6 +114,7 @@ class CustomUserAdmin(UserAdmin):
     form = CustomUserChangeForm
     add_form = CustomUserCreationForm
     list_display = ("username", "email", "is_staff", "is_active", "date_joined")
+    inlines = [SectionSlotAssignmentInline,]
 
     fieldsets = (
         (None, {"fields": ("display_name", "username", "email", "discord_account_link", "password", "date_joined", "theme")}),
