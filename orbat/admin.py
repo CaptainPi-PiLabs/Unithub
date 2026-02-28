@@ -32,15 +32,15 @@ class SectionInLine(OrderedModelAdminMixin, admin.TabularInline):
         return "-"
     edit_link.short_description = ""
 
-class SectionSlotInline(admin.TabularInline):
+class SectionSlotInline(OrderedModelAdminMixin, admin.TabularInline):
     model = SectionSlot
     extra = 0
     can_delete = False
     show_change_link = True
     template = "admin/temporal/tabular_inline.html"
 
-    fields = ("slot_name", "current_user")
-    readonly_fields = ("slot_name", "current_user")
+    fields = ("slot_name", "current_user", "move_up", "move_down")
+    readonly_fields = ("slot_name", "current_user", "move_up", "move_down")
 
     def slot_name(self, obj):
         return obj.get_name()
@@ -172,8 +172,8 @@ class SectionSlotAssignmentInline(BaseTemporalInline):
     autocomplete_fields = ("user",)
 
 @admin.register(SectionSlot)
-class SectionSlotAdmin(admin.ModelAdmin):
-    list_display = ("section", "current_name", "is_leader")
+class SectionSlotAdmin(OrderedAdminMixin, admin.ModelAdmin):
+    list_display = ("section", "current_name", "order", "is_leader")
     readonly_fields = ("section","is_leader")
 
     inlines = [

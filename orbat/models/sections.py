@@ -56,15 +56,17 @@ class Section(OrderedModelMixin, models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
-class SectionSlot(models.Model):
+class SectionSlot(OrderedModelMixin, models.Model):
     section = models.ForeignKey(Section, on_delete=models.CASCADE, related_name="slots")
     is_leader = models.BooleanField(default=False)
 
     _details_cache = None
     _cache_datetime = None
 
+    _order_scope_fields = ["section"]
+
     class Meta:
-        ordering = ['section']
+        ordering = ["order", "section"]
 
     def __str__(self):
         return f"{self.section} - {self.get_name()}"

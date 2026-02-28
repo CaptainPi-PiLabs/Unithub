@@ -79,31 +79,7 @@ def get_section_slot_snapshots(section, date=None):
             )
         )
 
-    return sorted(snapshots, key=_slot_snapshot_sort_key)
-
-
-TEAM_ORDER = {
-    "Gold": 1,
-    "Green": 2,
-    "Red": 3,
-    "Blue": 4,
-    None: 5,
-}
-
-def _slot_snapshot_sort_key(snapshot: SectionSlotSnapshot):
-    """
-    Ordering rules:
-    - Leaders first
-    - Officers before non-officers
-    - Team order: Gold, Green, Red, Blue
-    - Name as tie-breaker
-    """
-    return (
-        not snapshot.is_leader,                      # leaders first
-        not snapshot.is_officer,                     # officers first
-        TEAM_ORDER.get(snapshot.colour, 99),
-        snapshot.name.lower(),
-    )
+    return snapshots
 
 def get_section_for_user(user, date=None):
     slot = get_section_slot(user, date)
