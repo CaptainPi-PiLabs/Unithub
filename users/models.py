@@ -1,7 +1,9 @@
 import uuid
 
+from django.conf import settings
 from django.contrib.auth.base_user import BaseUserManager, AbstractBaseUser
 from django.contrib.auth.models import PermissionsMixin
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
@@ -28,6 +30,33 @@ class CustomUserManager(BaseUserManager):
 
         return self.create_user(display_name, username, email, password, **extra_fields)
 
+class UnitMembership(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+class MembershipPromotions(models.Model):
+    membership = models.ForeignKey(UnitMembership, on_delete=models.CASCADE, related_name="promotions")
+    rank = models.CharField(max_length=20)
+    date_awarded = models.DateField()
+
+    class Meta:
+        ordering = ["date_awarded"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["membership", "rank"],
+                name="unique_rank_per_membership"
+            )
+        ]
+
+    def clean(self):
+        if self.date_awarded < self.membership.start_date:
+            raise ValidationError("Promotion date cannot be before membership start.")
+
+        if self.membership.end_date and self.date_awarded > self.membership.end_date:
+            raise ValidationError("Promotion date cannot be after membership end.")
+
+
 class UserStatus(models.TextChoices):
     ACTIVE = 'active', 'Active'
     APPLICANT = 'applicant', 'Applicant'
@@ -41,7 +70,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=255, unique=True)
 
     display_name = models.CharField(max_length=50, unique=True)
-    membership = models.CharField(max_length=20, null=True, blank=True) # Prospect, Junior Operator, Operator, Veteran
+    membership = models.CharField(max_length=20, null=True, blank=True) # Prospect, Junior Operator, Operator, Veteran # TODO Remove
     rank = models.CharField(max_length=20, null=True, blank=True) # Private, Lance Corporal, Corporal, Sergeant
     status = models.CharField(max_length=20, choices=UserStatus.choices, default=UserStatus.ACTIVE)
 
@@ -78,6 +107,23 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         if self.rank:
             return f"{self.rank} {self.display_name}"
         return self.display_name
+
+    def get_current_rank(self):
+        membership = (
+            UnitMembership.objects.filter(user=self, end_date__isnull=True).first()
+        )
+        if not membership:
+            if self.status == UserStatus.APPLICANT:
+                return "Applicant"
+            if self.status == UserStatus.RETIRED:
+                return "Retired"
+            return None
+
+        promotion = membership.promotions.order_by("-date_awarded").first()
+        if promotion:
+            return str(promotion.rank)
+        return "Prospect"
+
 
     def get_name_with_callsign(self):
         return self.get_ranked_name()
