@@ -3,9 +3,11 @@ from enum import Enum
 
 class OrbatActions(str, Enum):
     CREATE_PLATOON = "create_platoon"
+    READ_PLATOON = "read_platoon"
     MODIFY_PLATOON = "modify_platoon"
     REMOVE_PLATOON = "remove_platoon"
     CREATE_SECTION = "create_section"
+    READ_SECTION = "read_section"
     MODIFY_SECTION = "modify_section"
     REMOVE_SECTION = "remove_section"
     ASSIGN_SECTION_LEADER = "assign_section_leader"

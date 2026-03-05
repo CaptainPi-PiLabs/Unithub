@@ -1,4 +1,4 @@
-from django.db import IntegrityError
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from apis.views.base import OrbatAPIView
 from orbat.enums import OrbatActions
 from orbat.helpers import get_section_slot_snapshots
-from orbat.models.sections import Section, Platoon
+from orbat.models.sections import Section, Platoon, SectionSlotAssignment, SectionSlotDetail, SectionSlot
 
 
 class SectionAPI(OrbatAPIView):
@@ -17,12 +17,66 @@ class SectionAPI(OrbatAPIView):
     """
     object_permission_required = False
     required_permissions = {
-        "GET": [OrbatActions.MODIFY_SECTION],
+        "GET": [OrbatActions.READ_SECTION],
         "POST": [OrbatActions.CREATE_SECTION]
     }
 
     def get(self, request, *args, **kwargs):
-        pass
+        sections = (
+            Section.objects
+            .select_related("platoon")
+            .prefetch_related(
+                Prefetch(
+                    "slots",
+                    queryset=SectionSlot.objects
+                    .prefetch_related(
+                        Prefetch(
+                            "details",
+                            queryset=SectionSlotDetail.objects.filter(
+                                end_date__isnull=True
+                            ).order_by("-start_date"),
+                            to_attr="prefetched_details"
+                        ),
+                        Prefetch(
+                            "assignments",
+                            queryset=SectionSlotAssignment.objects
+                            .select_related("user")
+                            .filter(
+                                end_date__isnull=True
+                            ).order_by("-start_date"),
+                            to_attr="prefetched_assignments"
+                        )
+                    )
+                    .order_by("order"),
+                    to_attr="prefetched_slots"
+                )
+            )
+        )
+
+        section_data = []
+
+        for section in sections:
+            section_slots = []
+
+            for slot in section.prefetched_slots:
+                detail = slot.prefetched_details[0] if slot.prefetched_details else None
+                assignment = slot.prefetched_assignments[0] if slot.prefetched_assignments else None
+
+                section_slots.append({
+                    "position": slot.order,
+                    "name": detail.name if detail else None,
+                    "colour": detail.colour if detail else None,
+                    "member": assignment.user.display_name if assignment else None,
+                })
+
+            section_data.append({
+                "id": section.pk,
+                "name": section.name,
+                "platoon": section.platoon.name if section.platoon else None,
+                "slots": section_slots,
+            })
+
+        return Response(section_data)
 
     def post(self, request, *args, **kwargs):
         data = request.data
