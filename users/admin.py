@@ -6,13 +6,14 @@ from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.urls import reverse
 from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
+from unfold.admin import ModelAdmin, TabularInline
 
 from orbat.models.sections import SectionSlotAssignment
 from permissions.models import PermissionGroupMembership, PermissionGroup
 from users.models import CustomUser, MembershipPromotions, UnitMembership
 
 
-class SectionSlotAssignmentInline(admin.TabularInline):
+class SectionSlotAssignmentInline(TabularInline):
     model = SectionSlotAssignment
     fk_name = "user"
     classes = ('collapse',)
@@ -111,7 +112,7 @@ class CustomUserChangeForm(forms.ModelForm):
         return user
 
 @admin.register(CustomUser)
-class CustomUserAdmin(UserAdmin):
+class CustomUserAdmin(UserAdmin, ModelAdmin):
     form = CustomUserChangeForm
     add_form = CustomUserCreationForm
     list_display = ("username", "email", "is_staff", "is_active")
@@ -187,13 +188,13 @@ class CustomUserAdmin(UserAdmin):
             obj.set_unusable_password()
         super().save_model(request, obj, form, change)
 
-class MembershipPromotionsInline(admin.TabularInline):
+class MembershipPromotionsInline(TabularInline):
     model = MembershipPromotions
     extra = 0
     fields = ("rank", "date_awarded")
 
 @admin.register(UnitMembership)
-class UnitMembershipAdmin(admin.ModelAdmin):
+class UnitMembershipAdmin(ModelAdmin):
     list_display = ("user", "start_date", "end_date")
     inlines = (MembershipPromotionsInline, )
     autocomplete_fields = ("user",)

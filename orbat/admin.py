@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
+from unfold.admin import TabularInline, ModelAdmin
 
 from common.mixins.admin_mixin import OrderedModelAdminMixin, OrderedAdminMixin
 from common.temporal.admin import BaseTemporalInline, BaseTemporalAdmin
@@ -15,7 +16,7 @@ from orbat.models.unit import UnitApplication
 
 User = get_user_model()
 
-class SectionInLine(OrderedModelAdminMixin, admin.TabularInline):
+class SectionInLine(OrderedModelAdminMixin, TabularInline):
     model = Section
     fields = ["name", "max_size", "move_up", "move_down", "edit_link"]
     readonly_fields = ["move_up", "move_down", "edit_link"]
@@ -32,7 +33,7 @@ class SectionInLine(OrderedModelAdminMixin, admin.TabularInline):
         return "-"
     edit_link.short_description = ""
 
-class SectionSlotInline(OrderedModelAdminMixin, admin.TabularInline):
+class SectionSlotInline(OrderedModelAdminMixin, TabularInline):
     model = SectionSlot
     extra = 0
     can_delete = False
@@ -52,7 +53,7 @@ class SectionSlotInline(OrderedModelAdminMixin, admin.TabularInline):
         return assignment.user if assignment else "—"
 
 @admin.register(Platoon)
-class PlatoonAdmin(OrderedModelAdminMixin, OrderedAdminMixin, admin.ModelAdmin):
+class PlatoonAdmin(OrderedModelAdminMixin, OrderedAdminMixin, ModelAdmin):
     fields = ["name", "description"]
     list_display = ("name", "move_up", "move_down")
     readonly_fields = ["move_up", "move_down"]
@@ -81,7 +82,7 @@ class AssignSectionUserForm(Form):
     user = ModelChoiceField(queryset=User.objects.none(), label="Select User")
 
 @admin.register(Section)
-class SectionAdmin(OrderedAdminMixin, admin.ModelAdmin):
+class SectionAdmin(OrderedAdminMixin, ModelAdmin):
     list_display = ("name", "order", "platoon", "max_size")
     list_filter = ("platoon",)
     search_fields = ("name",)
@@ -172,7 +173,7 @@ class SectionSlotAssignmentInline(BaseTemporalInline):
     autocomplete_fields = ("user",)
 
 @admin.register(SectionSlot)
-class SectionSlotAdmin(OrderedAdminMixin, admin.ModelAdmin):
+class SectionSlotAdmin(OrderedAdminMixin, ModelAdmin):
     list_display = ("section", "current_name", "order", "is_leader")
     readonly_fields = ("section","is_leader")
     filter = ("section",)
@@ -216,5 +217,5 @@ class SectionSlotAssignmentAdmin(BaseTemporalAdmin):
     )
 
 @admin.register(UnitApplication)
-class UnitApplicationAdmin(admin.ModelAdmin):
+class UnitApplicationAdmin(ModelAdmin):
     list_display = ("external_account", "user", "date", "actioned_by", "status")

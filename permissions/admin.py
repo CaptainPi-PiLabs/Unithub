@@ -1,8 +1,8 @@
 from django import forms
 from django.apps import apps
 from django.contrib import admin
-from django.contrib.auth.models import Permission, Group
 from django.utils.html import format_html
+from unfold.admin import TabularInline, ModelAdmin
 
 from .models import PermissionGroup, PermissionGrant, PermissionGroupMembership
 
@@ -10,7 +10,7 @@ from .models import PermissionGroup, PermissionGrant, PermissionGroupMembership
 # Inlines
 # -----------------------------
 
-class MembershipInline(admin.TabularInline):
+class MembershipInline(TabularInline):
     model = PermissionGroupMembership
     extra = 1
     autocomplete_fields = ["user"]
@@ -40,7 +40,7 @@ class PermissionGrantForm(forms.ModelForm):
             raise forms.ValidationError("object ID requires a object type.")
         return cleaned_data
 
-class PermissionGrantInline(admin.TabularInline):
+class PermissionGrantInline(TabularInline):
     model = PermissionGrant
     form = PermissionGrantForm
     extra = 1
@@ -64,7 +64,7 @@ class PermissionGrantInline(admin.TabularInline):
         return super().get_formset(request, obj, **kwargs)
 
 @admin.register(PermissionGrant)
-class PermissionGrantAdmin(admin.ModelAdmin):
+class PermissionGrantAdmin(ModelAdmin):
     form = PermissionGrantForm
     list_display = ("subject_display", "rule", "module", "get_scope_name", "effect")
     list_filter = ("rule__module", "effect", "group")
@@ -96,7 +96,7 @@ class PermissionGrantAdmin(admin.ModelAdmin):
     get_scope_name.short_description = "Scope"
 
 @admin.register(PermissionGroupMembership)
-class PermissionGroupMembershipAdmin(admin.ModelAdmin):
+class PermissionGroupMembershipAdmin(ModelAdmin):
     list_display = ["user_link", "group_link"]
     list_filter = ["group"]
     search_fields = ["user__username", "user__display_name", "group__name"]
@@ -114,7 +114,7 @@ class PermissionGroupMembershipAdmin(admin.ModelAdmin):
     group_link.admin_order_field = "group"
 
 @admin.register(PermissionGroup)
-class PermissionGroupAdmin(admin.ModelAdmin):
+class PermissionGroupAdmin(ModelAdmin):
     list_display = ["name", "member_count", "permission_count"]
     inlines = [MembershipInline, PermissionGrantInline]
 

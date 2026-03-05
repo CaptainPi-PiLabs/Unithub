@@ -1,23 +1,24 @@
 from django.contrib import admin
+from unfold.admin import TabularInline, ModelAdmin
 
 from apis.models import UserAPIKey, ServiceAPIKey
 from permissions.models import PermissionGrant
 
 
-class UserPermissionGrantInline(admin.TabularInline):
+class UserPermissionGrantInline(TabularInline):
     model = PermissionGrant
     fk_name = "user_api_key"
     extra = 0
     fields = ("rule", "effect", "content_type", "object_id", "scope_key")
 
-class ServicePermissionGrantInline(admin.TabularInline):
+class ServicePermissionGrantInline(TabularInline):
     model = PermissionGrant
     fk_name = "service_api_key"
     extra = 0
     fields = ("rule", "effect", "content_type", "object_id", "scope_key")
 
 @admin.register(UserAPIKey)
-class UserAPIKeyAdmin(admin.ModelAdmin):
+class UserAPIKeyAdmin(ModelAdmin):
     list_display = ("user", "name", "active", "last_used_at", "last_used_ip")
     readonly_fields = ("user", "last_used_at", "last_used_ip")
     search_fields = ("user__username", "name")
@@ -34,7 +35,7 @@ class UserAPIKeyAdmin(admin.ModelAdmin):
         return True
 
 @admin.register(ServiceAPIKey)
-class ServiceAPIKeyAdmin(admin.ModelAdmin):
+class ServiceAPIKeyAdmin(ModelAdmin):
     list_display = ("name", "created_by", "active", "last_used_at", "last_used_ip")
     readonly_fields = ("last_used_at", "last_used_ip", "created_by")
     search_fields = ("name", "created_by__username")

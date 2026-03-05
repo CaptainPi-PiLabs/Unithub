@@ -1,4 +1,5 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 
 from events.models import Campaign, EventGroup, EventRole, EventAssignment, Event
 
@@ -8,7 +9,7 @@ from events.models import Campaign, EventGroup, EventRole, EventAssignment, Even
 # ──────────────────────────────────────────────
 
 @admin.register(Campaign)
-class CampaignAdmin(admin.ModelAdmin):
+class CampaignAdmin(ModelAdmin):
     list_display = ("name", "start_date", "end_date")
     search_fields = ("name", "description")
     list_filter = ("start_date", "end_date")
@@ -18,19 +19,19 @@ class CampaignAdmin(admin.ModelAdmin):
 # Event Inline Admin
 # ──────────────────────────────────────────────
 
-class EventGroupInline(admin.TabularInline):
+class EventGroupInline(TabularInline):
     model = EventGroup
     extra = 1
     autocomplete_fields = ("orbat_section",)
 
 
-class EventRoleInline(admin.TabularInline):
+class EventRoleInline(TabularInline):
     model = EventRole
     extra = 1
     autocomplete_fields = ("user",)
 
 
-class EventAssignmentInline(admin.TabularInline):
+class EventAssignmentInline(TabularInline):
     model = EventAssignment
     extra = 1
     autocomplete_fields = ("user", "event_group", "assigned_by")
@@ -51,7 +52,7 @@ class EventAssignmentInline(admin.TabularInline):
 # ──────────────────────────────────────────────
 
 @admin.register(Event)
-class EventAdmin(admin.ModelAdmin):
+class EventAdmin(ModelAdmin):
     list_display = ("name", "date", "start_time", "type", "campaign")
     search_fields = ("name", "description")
     list_filter = ("type", "campaign", "date")
@@ -69,7 +70,7 @@ class EventAdmin(admin.ModelAdmin):
 # ──────────────────────────────────────────────
 
 @admin.register(EventGroup)
-class EventGroupAdmin(admin.ModelAdmin):
+class EventGroupAdmin(ModelAdmin):
     list_display = ("name", "event", "orbat_section")
     search_fields = ("name",)
     list_filter = ("event",)
@@ -80,7 +81,7 @@ class EventGroupAdmin(admin.ModelAdmin):
 # ──────────────────────────────────────────────
 
 @admin.register(EventAssignment)
-class EventAssignmentAdmin(admin.ModelAdmin):
+class EventAssignmentAdmin(ModelAdmin):
     list_display = (
         "event",
         "user",
@@ -103,7 +104,7 @@ class EventAssignmentAdmin(admin.ModelAdmin):
 # ──────────────────────────────────────────────
 
 @admin.register(EventRole)
-class EventRoleAdmin(admin.ModelAdmin):
+class EventRoleAdmin(ModelAdmin):
     list_display = ("event", "user", "role")
     list_filter = ("role", "event")
     search_fields = ("user__username",)

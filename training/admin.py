@@ -1,21 +1,22 @@
 from django.contrib import admin
+from unfold.admin import TabularInline, ModelAdmin
 
 from training.models import Qualification, UserQualification, QualificationCriterion, QualificationTrainer
 
 
-class QualificationCriteriaInline(admin.TabularInline):
+class QualificationCriteriaInline(TabularInline):
     model = QualificationCriterion
     extra = 0
     fields = ("name", "description", "order")
     ordering = ("order",)
 
-class QualificationTrainerInline(admin.TabularInline):
+class QualificationTrainerInline(TabularInline):
     model = QualificationTrainer
     extra = 0
     autocomplete_fields = ("user",)
 
 @admin.register(Qualification)
-class QualificationAdmin(admin.ModelAdmin):
+class QualificationAdmin(ModelAdmin):
     list_display = ("name", "is_active")
     list_filter = ("is_active",)
     search_fields = ("name",)
@@ -26,5 +27,5 @@ class QualificationAdmin(admin.ModelAdmin):
     ]
 
 @admin.register(UserQualification)
-class UserQualificationAdmin(admin.ModelAdmin):
+class UserQualificationAdmin(ModelAdmin):
     list_display = ('user', 'qualification')
