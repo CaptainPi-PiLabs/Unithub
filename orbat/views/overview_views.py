@@ -15,12 +15,12 @@ from users.models import CustomUser, UserStatus
 
 class ORBATOverviewView(ORBATContextMixin, UnitHubTemplateView):
     template_name = "orbat/overview.html"
+    breadcrumbs = [
+        ("ORBAT", None),
+    ]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["breadcrumbs"] = [
-            {"name": "ORBAT", "url": None},
-        ]
 
         # Build section groups with snapshots
         section_groups = []
@@ -72,6 +72,10 @@ class ORBATOverviewView(ORBATContextMixin, UnitHubTemplateView):
 
 class ORBATSectionListView(ORBATContextMixin, UnitHubTemplateView):
     template_name = "orbat/section_list.html"
+    breadcrumbs = [
+        ("ORBAT", "orbat_overview"),
+        ("Sections", None),
+    ]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -120,11 +124,6 @@ class ORBATSectionListView(ORBATContextMixin, UnitHubTemplateView):
             "can_create_section": has_orbat_permission(user, OrbatActions.CREATE_SECTION),
         })
 
-        context["breadcrumbs"] = [
-            {"name": "ORBAT", "url": "orbat_overview"},
-            {"name": "Sections", "url": None},
-        ]
-
         return context
 
 
@@ -132,6 +131,10 @@ class ORBATMemberView(ORBATContextMixin, UnitHubListView):
     model = CustomUser
     template_name = "orbat/members.html"
     context_object_name = "members"
+    breadcrumbs = [
+        ("ORBAT", "orbat_overview"),
+        ("Members", None)
+    ]
 
     def get_queryset(self):
         sort = self.request.GET.get("sort", "name")
@@ -200,11 +203,6 @@ class ORBATMemberView(ORBATContextMixin, UnitHubListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        context["breadcrumbs"] = [
-            {"name": "ORBAT", "url": "orbat_overview"},
-            {"name": "Members", "url": None},
-        ]
 
         return context
 

@@ -1,10 +1,24 @@
 from django.conf import settings
+from django.urls import reverse
 from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView
 from django.contrib import messages
 
 
 class UnitHubContextMixin:
     title = "Unit Hub"
+    breadcrumbs = []
+
+    @staticmethod
+    def build_breadcrumbs(*crumbs):
+        built = []
+        for name, url in crumbs:
+            if isinstance(url, str) and not url.startswith("/"):
+                url = reverse(url)
+            built.append({"name": name, "url": url})
+        return built
+
+    def get_breadcrumbs(self):
+        return self.build_breadcrumbs(*self.breadcrumbs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -25,7 +39,7 @@ class UnitHubContextMixin:
             nav_links = [l for l in nav_links if l["name"] != "Training"]
 
         context["nav_links"] = nav_links
-        context.setdefault("breadcrumbs", [])
+        context["breadcrumbs"] = self.get_breadcrumbs()
         context["title"] = getattr(self, "title", "UnitHub")
 
         return context

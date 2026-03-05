@@ -19,6 +19,14 @@ class ORBATSectionDetailView(ORBATContextMixin, UnitHubDetailView):
     slug_url_kwarg = 'section_slug'
     context_object_name = 'section'
 
+    def get_breadcrumbs(self):
+        section = self.get_object()
+        return self.build_breadcrumbs(
+            ("ORBAT", "/orbat/"),
+            ("Sections", "/orbat/"),
+            (section.name, None)
+        )
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         section = self.object
@@ -32,12 +40,6 @@ class ORBATSectionDetailView(ORBATContextMixin, UnitHubDetailView):
             "can_edit_section": can_manage,
             "can_manage_slots": can_manage,
         })
-
-        context["breadcrumbs"] = [
-            {"name": "ORBAT", "url": "/orbat/"},
-            {"name": "Sections", "url": "/orbat/"},
-            {"name": section.name, "url": None},
-        ]
 
         context["slot_snapshots"] = get_section_slot_snapshots(section)
 
@@ -75,6 +77,14 @@ class ORBATSectionEditView(ORBATContextMixin, UnitHubUpdateView):
 
     def get_success_url(self):
         return reverse("orbat_section_detail", kwargs={"section_slug": self.object.slug})
+
+    def get_breadcrumbs(self):
+        section = self.get_object()
+        return self.build_breadcrumbs(
+            ("ORBAT", "/orbat"),
+            (section.name, reverse("orbat_section_detail", kwargs={"section_slug": section.slug})),
+            ("Edit", None)
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

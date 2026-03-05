@@ -8,15 +8,15 @@ from training.views.mixins import TrainingContextMixin
 
 class TrainingMatrixView(TrainingContextMixin, UnitHubTemplateView):
     template_name = "training/training_matrix.html"
+    breadcrumbs = [
+        ("Training", "/training/"),
+        ("Matrix", None)
+    ]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         context["page_title"] = "Matrix"
-        context["breadcrumbs"] = [
-            {"name": "Training", "url": '/training'},
-            {"name": "Matrix", "url": None},
-        ]
 
         section_filter = self.request.GET.get("section")
         base_users, current_section_id = self.get_users_for_section(section_filter)

@@ -9,15 +9,14 @@ from ..models import Qualification, QualificationTrainer, UserQualification
 
 class TrainingHomeView(TrainingContextMixin, UnitHubTemplateView):
     template_name = "training/training_home.html"
+    breadcrumbs = [
+        ("Training", None),
+    ]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         context["page_title"] = "Home"
-
-        context["breadcrumbs"] = [
-            {"name": "Training", "url": None},
-        ]
 
         return context
 

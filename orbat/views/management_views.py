@@ -11,6 +11,10 @@ from orbat.views.mixins import ORBATContextMixin
 @method_decorator(login_required, name="dispatch")
 class ORBATManagementOverviewView(ORBATContextMixin, UnitHubTemplateView):
     template_name = "orbat/management_overview.html"
+    breadcrumbs = [
+        ("ORBAT", "/orbat/"),
+        ("Management", None),
+    ]
 
     def dispatch(self, request, *args, **kwargs):
         user = request.user
@@ -28,10 +32,6 @@ class ORBATManagementOverviewView(ORBATContextMixin, UnitHubTemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["breadcrumbs"] = [
-            {"name": "ORBAT", "url": "/orbat/"},
-            {"name": "Management", "url": None},
-        ]
         context["sections"] = Section.objects.all()
         context["show_create"] = True
         return context
@@ -54,13 +54,16 @@ class ORBATSectionManagementView(ORBATContextMixin, UnitHubDetailView):
 
         return super().dispatch(request, *args, **kwargs)
 
+    def get_breadcrumbs(self):
+        section = self.section
+        return self.build_breadcrumbs(
+            ("Dashboard", "/"),
+            ("ORBAT", "/orbat/"),
+            ("Management", "/orbat/management/"),
+            (section.name, None)
+        )
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["breadcrumbs"] = [
-            {"name": "Dashboard", "url": "/"},
-            {"name": "ORBAT", "url": "/orbat/"},
-            {"name": "Management", "url": "/orbat/management/"},
-            {"name": self.section.name, "url": None},
-        ]
         context["section"] = self.section
         return context

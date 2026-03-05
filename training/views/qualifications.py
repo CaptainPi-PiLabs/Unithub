@@ -107,13 +107,4 @@ class QualificationDetailView(TrainingContextMixin, UnitHubDetailView):
         #    .order_by("-start_time")
         # )
 
-        # --------------------
-        # Breadcrumbs
-        # --------------------
-        context["breadcrumbs"] = [
-            {"name": "Training", "url": "/training/"},
-            {"name": "Qualifications", "url": "/training/qualifications/"},
-            {"name": qualification.name, "url": None},
-        ]
-
         return context

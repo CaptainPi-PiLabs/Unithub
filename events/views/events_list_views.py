@@ -28,14 +28,13 @@ class EventListView(EventContextMixin, UnitHubListView):
 class EventCalendarView(EventContextMixin, UnitHubTemplateView):
     template_name = "events/event_calendar.html"
     title = "Event Calendar"
+    breadcrumbs = [
+        ("Events", "/events/"),
+        ("Calendar", None),
+    ]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        context["breadcrumbs"] = [
-            {"name": "Events", "url": "/events/"},
-            {"name": "Calendar", "url": None},
-        ]
 
         # extract ?year=YYYY&month=MM
         year = int(self.request.GET.get("year", timezone.now().year))
@@ -63,14 +62,13 @@ class EventCalendarView(EventContextMixin, UnitHubTemplateView):
 class CampaignListView(EventContextMixin, UnitHubListView):
     template_name = "events/campaign_list.html"
     title = "Campaigns"
+    breadcrumbs = [
+        ("Events", "/events/"),
+        ("Campaigns", None),
+    ]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        context["breadcrumbs"] = [
-            {"name": "Events", "url": "/events/"},
-            {"name": "Campaigns", "url": None},
-        ]
 
         context["campaigns"] = Campaign.objects.all()
 
