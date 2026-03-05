@@ -32,7 +32,7 @@ class CustomUserManager(BaseUserManager):
 
 class UnitMembership(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    start_date = models.DateField()
+    start_date = models.DateField(default=timezone.now)
     end_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
@@ -158,23 +158,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             if not self.rank:
                 self.rank = "PVT"
         super().save(*args, **kwargs)
-
-    def change_membership(self, new_tier, actioned_by=None):
-        from timeline.models import TimelineTypes
-        old = self.membership
-
-        if old == new_tier:
-            return
-
-        self.membership = new_tier
-        self.save(update_fields=["membership"])
-
-        add_entry(
-            TimelineTypes.MEMBERSHIP_TIER_CHANGED,
-            user=self,
-            description=f"{old or 'None'} → {new_tier}",
-            snapshot_name=new_tier
-        )
 
     def change_status(self, new_status, actioned_by=None, reason=None):
         old_status = self.status

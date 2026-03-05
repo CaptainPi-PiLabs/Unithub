@@ -4,6 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from common.temporal.models import ApplicationBase
+from users.models import UnitMembership
 
 
 class UnitApplication(ApplicationBase):
@@ -53,8 +54,9 @@ class UnitApplication(ApplicationBase):
         from users.models import UserStatus
 
         # Promote user
-        self.user.change_status(UserStatus.ACTIVE, actioned_by=actioned_by)
-        self.user.change_membership("Prospect", actioned_by=actioned_by)
+        self.user.status = UserStatus.ACTIVE
+        self.user.save()
+        UnitMembership.objects.create(user=self.user)
 
         # Close application
         self.status = self.STATUS_PASSED
