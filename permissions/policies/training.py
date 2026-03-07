@@ -28,7 +28,6 @@ class SeniorTrainerPolicy(TrainingPolicy):
     actions = {
         TrainingActions.ADD_CRITERIA,
         TrainingActions.MODIFY_CRITERIA,
-        TrainingActions.MODIFY_QUALIFICATION
     }
 
     def check(self, user, scope):
@@ -39,6 +38,24 @@ class SeniorTrainerPolicy(TrainingPolicy):
             user_id=user.id,
             qualification=scope,
             is_senior=True
+        ).exists():
+            return True
+        return None
+
+class ManagerTrainerPolicy(TrainingPolicy):
+    actions = {
+        TrainingActions.MODIFY_QUALIFICATION,
+        TrainingActions.MANAGE_TRAINERS,
+    }
+
+    def check(self, user, scope):
+        if scope is None:
+            return None
+
+        if QualificationTrainer.objects.filter(
+            user_id=user.id,
+            qualification=scope,
+            is_manager=True
         ).exists():
             return True
         return None
