@@ -8,8 +8,61 @@ from training.models import Qualification, QualificationCriterion, Qualification
 from training.views.mixins import TrainingContextMixin
 
 
+LIST_ACTION_MAP = {
+    "create_qualification": {
+        "perm": TrainingActions.CREATE_QUALIFICATION,
+        "handler": "_create_qualification",
+    },
+    "move_qualification": {
+        "perm": TrainingActions.MODIFY_QUALIFICATION,
+        "handler": "_move_qualification",
+    }
+}
+
+DETAIL_ACTION_MAP = {
+    "save_qualification": {
+        "perm": TrainingActions.MODIFY_QUALIFICATION,
+        "handler": "_save_qualification",
+    },
+    "delete_qualification": {
+        "perm": TrainingActions.REMOVE_QUALIFICATION,
+        "handler": "_delete_qualification",
+    },
+    "save_criterion": {
+        "perm": TrainingActions.MODIFY_CRITERIA,
+        "handler": "_save_criterion",
+    },
+    "delete_criterion": {
+        "perm": TrainingActions.REMOVE_CRITERIA,
+        "handler": "_delete_criterion",
+    },
+    "move_criterion": {
+        "perm": TrainingActions.MODIFY_CRITERIA,
+        "handler": "_move_criterion",
+    },
+    "save_trainer": {
+        "perm": TrainingActions.MANAGE_TRAINERS,
+        "handler": "_save_trainer",
+    },
+    "remove_trainer": {
+        "perm": TrainingActions.MANAGE_TRAINERS,
+        "handler": "_remove_trainer",
+    },
+}
+
+ROLE_HIERARCHY = {
+    "Trainer": 1,
+    "Senior Trainer": 2,
+    "Manager": 3,
+}
+
+
 class QualificationsListView(TrainingContextMixin, UnitHubListView):
     template_name = "training/qualifications_list.html"
+    breadcrumbs = [
+        ("Training", "/training/"),
+        ("Qualifications", None),
+    ]
 
     def get_queryset(self):
         show_archived = self.request.GET.get("archived") == "1"
@@ -22,12 +75,38 @@ class QualificationsListView(TrainingContextMixin, UnitHubListView):
         context["can_create_qualifications"] = has_training_permission(self.request.user, TrainingActions.CREATE_QUALIFICATION)
         context["show_archived"] = self.request.GET.get("archived") == "1"
 
-        context["breadcrumbs"] = [
-            {"name": "Training", "url": '/training'},
-            {"name": "Qualifications", "url": None}
-        ]
-
         return context
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get("action")
+        config = LIST_ACTION_MAP.get(action)
+
+        if not config:
+            raise PermissionDenied()
+
+        if not has_training_permission(request.user, config["perm"]):
+            raise PermissionDenied()
+
+        # Execute handler
+        handler = getattr(self, config["handler"])
+        handler(request)
+
+        return redirect(self.request.path)
+
+    def _create_qualification(self, request):
+        name = request.POST.get("name")
+        description = request.POST.get("description")
+        if not name:
+            raise BadRequest()
+        try:
+            Qualification.objects.create(name=name, description=description)
+        except IntegrityError:
+            raise BadRequest()
+
+    def _move_qualification(self, request):
+        qualification = Qualification.objects.get(pk=request.POST.get("pk"))
+        position = request.POST.get("position")
+        qualification.move_to(int(position))
 
 class QualificationDetailView(TrainingContextMixin, UnitHubDetailView):
     template_name = "training/qualification_detail.html"

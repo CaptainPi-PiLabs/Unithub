@@ -1,4 +1,5 @@
 {% extends "common/base.html" %}
+{% load static %}
 
 {% block content %}
 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
@@ -7,7 +8,7 @@
     <div class="flex justify-between items-center mb-4">
         <h1 class="text-2xl font-bold">Qualifications</h1>
         {% if can_create_qualifications %}
-        <button @click="openCreatePanel()"
+        <button @click="openPanel('qualification_create')"
                 class="px-4 py-2 bg-green-500 text-white rounded hover:opacity-90 text-sm">
             New
         </button>
@@ -15,7 +16,14 @@
     </div>
 
     {% if object_list %}
-    <div x-data="qualificationDrag()" x-init="init()" x-cloak>
+    <div x-data="sortableController({
+        listId: 'qualification-list',
+        actionName: 'move_qualification',
+        detailUrl: (id) => `/training/qualifications/${id}/`
+        })"
+         x-init="init()"
+         x-cloak
+    >
         <div id="qualification-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {% for qualification in object_list %}
             <div
@@ -53,85 +61,7 @@
 
 {% block extra_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-
-<script>
-function qualificationsPage() {
-    return {
-        panelOpen: false,
-        panelMode: null,
-        activeQualification: {},
-
-        openCreatePanel() {
-            this.activeQualification = { name: '', description: '' };
-            this.panelMode = 'qualification_create';
-            this.panelOpen = true;
-        }
-    }
-}
-
-function qualificationDrag() {
-    return {
-        dragging: false,
-
-        init() {
-            const el = document.getElementById("qualification-list");
-            if (!el) return;
-
-            // Wait until Sortable is loaded
-            const waitForSortable = () => {
-                if (typeof Sortable === "undefined") {
-                    setTimeout(waitForSortable, 50);
-                    return;
-                }
-
-                // Initialize Sortable
-                Sortable.create(el, {
-                    animation: 150,
-                    handle: ".cursor-grab",
-                    onStart: () => {
-                        this.dragging = true;
-                    },
-                    onEnd: (evt) => {
-                        this.dragging = false;
-
-                        const movedId = evt.item.dataset.id;
-                        const newIndex = evt.newIndex + 1;
-
-                        if (!movedId) {
-                            console.error("Missing qualification id");
-                            location.reload();
-                            return;
-                        }
-
-                        fetch(`/training/qualifications/${movedId}/move/`, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "X-CSRFToken": this.csrfToken(),
-                            },
-                            body: JSON.stringify({ position: newIndex }),
-                        }).then((res) => {
-                            if (!res.ok) {
-                                alert("Failed to move qualification");
-                                location.reload();
-                            }
-                        });
-                    },
-                });
-            };
-
-            waitForSortable();
-        },
-
-        goToDetail(id) {
-            if (this.dragging) return;
-            window.location.href = `/training/qualifications/${id}/`;
-        },
-
-        csrfToken() {
-            return document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-        },
-    };
-}
-</script>
+<script src="{% static 'common/js/sortableController.js' %}"></script>
+<script src="{% static 'common/js/slidePanelBase.js' %}"></script>
+<script src="{% static 'training/js/qualifications_list.js' %}"></script>
 {% endblock %}

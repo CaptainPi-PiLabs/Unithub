@@ -1,0 +1,5 @@
+function qualificationsPage() {
+    return {
+        ...slidePanelBase(),
+    }
+}

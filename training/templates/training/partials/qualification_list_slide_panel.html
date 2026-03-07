@@ -1,37 +1,44 @@
 {% extends "common/partials/base_slide_panel.html" %}
 
 {% block slidePanel %}
-<template x-if="panelMode === 'qualification_create'">
-  <form method="POST" action="{% url 'training_qualification_create' %}">
-    {% csrf_token %}
+<template x-if="isPanel('qualification_create')">
+<div>
 
     <h2 class="text-lg font-semibold mb-4">New Qualification</h2>
+    <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_qualification">
 
-    <!-- Name -->
-    <div class="mb-4">
-      <label class="block font-semibold mb-1">Name</label>
-      <input type="text" name="name" x-model="activeQualification.name"
-             class="w-full p-2 border rounded bg-base-bg text-base-text focus:ring focus:ring-blue-300" required>
-    </div>
+        <!-- Name -->
+        <div class="mb-4">
+          <label class="block font-semibold mb-1">Name</label>
+          <input type="text" name="name" x-model="formData.name"
+                 class="w-full p-2 border rounded bg-base-bg text-base-text focus:ring focus:ring-blue-300" required>
+        </div>
 
-    <!-- Description -->
-    <div class="mb-4">
-      <label class="block font-semibold mb-1">Description</label>
-      <textarea name="description" x-model="activeQualification.description"
-                rows="4"
-                class="w-full p-2 border rounded bg-base-bg text-base-text focus:ring focus:ring-blue-300"></textarea>
-    </div>
+        <!-- Description -->
+        <div class="mb-4">
+          <label class="block font-semibold mb-1">Description</label>
+          <textarea name="description" x-model="formData.description"
+                    rows="4"
+                    class="w-full p-2 border rounded bg-base-bg text-base-text focus:ring focus:ring-blue-300"></textarea>
+        </div>
 
-    <!-- Actions -->
-    <div class="flex justify-end space-x-2 mt-6">
-      <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-        Save
-      </button>
-      <button type="button" @click="panelOpen = false"
-              class="px-4 py-2 bg-base-surface-dark text-base-text rounded hover:bg-gray-400">
-        Cancel
-      </button>
-    </div>
-  </form>
+        <!-- Actions -->
+        <div class="flex justify-end space-x-2">
+            <button type="button"
+                    @click="closePanel()"
+                    class="px-4 py-2 bg-base-surface-dark rounded">
+                Cancel
+            </button>
+
+            <button type="submit"
+                    class="px-4 py-2 bg-blue-600 text-white rounded">
+                Create
+            </button>
+        </div>
+    </form>
+
+</div>
 </template>
 {% endblock %}
