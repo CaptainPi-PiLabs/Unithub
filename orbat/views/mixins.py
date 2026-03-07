@@ -17,7 +17,7 @@ class ORBATContextMixin:
             {"name": "Overview", "path": "/orbat/"},
             {"name": "Sections", "path": "/orbat/sections/"},
             {"name": "Members", "path": "/orbat/members/"},
-            {"name": "Timeline", "path": "/orbat/timeline/"},
+            # {"name": "Timeline", "path": "/orbat/timeline/"},
             {"name": "Applications", "path": "/orbat/applications/"},
         ]
 

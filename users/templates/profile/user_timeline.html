@@ -2,8 +2,6 @@
 
 {% block content %}
 
-{% load timeline_tags %}
-
-{% render_timeline user_qs=user_profile %}
+    {% include "timeline/timeline_list.html" with entries=timeline_entries %}
 
 {% endblock %}

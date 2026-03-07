@@ -4,6 +4,8 @@ from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
 
 from common.views import UnitHubTemplateView
+from timeline.builder_display import build_timeline_display_entries
+from timeline.builders import get_personal_timeline, group_timeline_entries
 from users.models import CustomUser
 from users.views import ProfileContextMixin
 
@@ -96,3 +98,14 @@ class UserProfileEditView(ProfileContextMixin, UnitHubTemplateView):
 
 class ORBATTimelineView(ProfileContextMixin, UnitHubTemplateView):
     template_name = 'profile/user_timeline.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        user_id = self.kwargs.get('user_id')
+        user = CustomUser.objects.filter(id=user_id).first()
+        if user:
+            events = get_personal_timeline(user)
+            display_entries = build_timeline_display_entries(events)
+            context["timeline_entries"] = group_timeline_entries(display_entries)
+
+        return context

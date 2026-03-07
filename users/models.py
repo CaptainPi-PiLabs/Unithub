@@ -7,8 +7,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
-from timeline.utils import add_entry
-
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, display_name, username=None, email=None, password=None ,**extra_fields):
@@ -168,48 +166,3 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         self.save(update_fields=["status"])
 
         self._log_status_transition(old_status, new_status, actioned_by, reason)
-
-    def _log_status_transition(self, old, new, actioned_by=None, reason=None):
-        from timeline.models import TimelineTypes
-
-        # Joined unit
-        if old in [UserStatus.APPLICANT, UserStatus.RETIRED] and new == UserStatus.ACTIVE:
-            add_entry(
-                TimelineTypes.UNIT_JOINED,
-                user=self,
-                description=reason or "",
-            )
-
-        # Left unit
-        if old != UserStatus.RETIRED and new == UserStatus.RETIRED:
-            add_entry(
-                TimelineTypes.UNIT_LEFT,
-                user=self,
-                description=reason or "",
-            )
-
-        # LOA
-        if new == UserStatus.LOA:
-            add_entry(
-                TimelineTypes.MOVED_TO_LOA,
-                user=self,
-            )
-
-        if old == UserStatus.LOA and new == UserStatus.ACTIVE:
-            add_entry(
-                TimelineTypes.RETURNED_FROM_LOA,
-                user=self,
-            )
-
-        # Reserves
-        if new == UserStatus.RESERVES:
-            add_entry(
-                TimelineTypes.MOVED_TO_RESERVES,
-                user=self,
-            )
-
-        if old == UserStatus.RESERVES and new == UserStatus.ACTIVE:
-            add_entry(
-                TimelineTypes.RETURNED_FROM_RESERVES,
-                user=self,
-            )

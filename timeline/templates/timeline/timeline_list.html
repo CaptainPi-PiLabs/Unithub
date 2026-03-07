@@ -56,21 +56,24 @@
     <ol class="mt-3 divide-y divide-base-border">
         {% for entry in entries %}
         <li>
-            <a href="#" class="block items-center p-3 sm:flex hover:bg-base-surface-dark transition-colors rounded">
-                <div class="text-base-muted">
-                    <div class="text-base font-normal">
-                        <p>{{ entry }}</p>
-                        <p>
-                        {% if entry.section %}
-                            {{entry.section}}:
-                        {% endif %}
-                        {% if entry.snapshot_name %}
-                            {{ entry.snapshot_name }}
-                        {% endif %}
-                        </p>
-                    </div>
-                </div>
-            </a>
+          <a href="{{ entry.link }}" class="block p-3 hover:bg-base-surface-dark rounded">
+            <div class="flex items-center gap-3">
+
+              {% if entry.avatar_url %}
+                <img src="{{ entry.avatar_url }}" class="w-10 h-10 rounded-full" />
+              {% endif %}
+
+              <div>
+                <p class="font-semibold">
+                  {{ entry.display_name }}
+                </p>
+                <p class="text-sm text-base-muted">
+                  {{ entry.message }}
+                </p>
+              </div>
+
+            </div>
+          </a>
         </li>
         {% endfor %}
     </ol>
