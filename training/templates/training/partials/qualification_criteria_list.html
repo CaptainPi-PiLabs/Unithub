@@ -1,0 +1,67 @@
+{% load static %}
+
+<h3 class="text-lg font-semibold">Criteria</h3>
+{% if criteria %}
+    <div class="space-y-3">
+        {% for criterion in criteria %}
+        <div class="border rounded p-4 bg-base-surface-dark flex justify-between items-center">
+            <div class="flex-1">
+                <h3 class="font-semibold">{{ criterion.name }}</h3>
+                <p class="text-sm text-gray-400">{{ criterion.description }}</p>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <!-- Move buttons (for ordering) -->
+                {% if can_edit %}
+                <!-- Move Up -->
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="move_criterion">
+                    <input type="hidden" name="criterion_id" value="{{ criterion.id }}">
+                    <input type="hidden" name="direction" value="up">
+
+                    <button type="submit"
+                            class="p-2 w-8 h-8 rounded hover:bg-base-surface-dark flex items-center justify-center">
+                        <img src="{% static 'common/icons/nav/arrow-up.svg' %}"
+                             alt="Move up"
+                             class="w-4 h-4">
+                    </button>
+                </form>
+
+                <!-- Move Down -->
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="move_criterion">
+                    <input type="hidden" name="criterion_id" value="{{ criterion.id }}">
+                    <input type="hidden" name="direction" value="down">
+
+                    <button type="submit"
+                            class="p-2 w-8 h-8 rounded hover:bg-base-surface-dark flex items-center justify-center">
+                        <img src="{% static 'common/icons/nav/arrow-down.svg' %}"
+                             alt="Move down"
+                             class="w-4 h-4">
+                    </button>
+                </form>
+                {% endif %}
+
+                <!-- Open slide panel -->
+                {% if can_edit %}
+                <button class="text-sm text-blue-500 hover:underline" @click="openCriterion({{ criterion.id }})">
+                Edit
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <p class="text-gray-500 italic">No criteria defined.</p>
+{% endif %}
+
+{% if can_edit %}
+<div class="flex justify-end">
+    <button class="px-3 py-2 bg-green-600 text-white rounded text-sm" @click="openCriterion(null)">
+        Add Criterion
+    </button>
+</div>
+{% endif %}

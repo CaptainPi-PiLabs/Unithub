@@ -5,153 +5,247 @@
 <!-- ========================= -->
 <!-- DETAILS PANEL -->
 <!-- ========================= -->
-<template x-if="panelMode === 'details'">
-  <form method="POST" action="{% url 'training_qualification_save' qualification.pk %}">
-    {% csrf_token %}
+<template x-if="isPanel('details')">
+<div>
 
     <h2 class="text-lg font-semibold mb-4">Qualification Details</h2>
 
-    <!-- Name -->
-    <div class="mb-4">
-      <label class="block font-semibold mb-1">Name</label>
+    <form method="POST">
+        {% csrf_token %}
 
-      {% if can_edit %}
-        <input type="text" name="name" value="{{ qualification.name }}" class="w-full p-2 border rounded bg-base-bg text-base-text focus:ring focus:ring-blue-300" required>
-      {% else %}
-        <p class="p-2 bg-gray-100 rounded">{{ qualification.name }}</p>
-      {% endif %}
-    </div>
+        <!-- Name -->
+        <div class="mb-4">
+            <label class="block font-semibold mb-1">Name</label>
 
-    <!-- Description -->
-    <div class="mb-4">
-      <label class="block font-semibold mb-1">Description</label>
+            <input
+                type="text"
+                name="name"
+                value="{{ qualification.name }}"
+                {% if not can_edit %}disabled{% endif %}
+                class="w-full p-2 border rounded bg-base-bg text-base-text">
+        </div>
 
-      {% if can_edit %}
-        <textarea name="description" rows="4" class="w-full p-2 border rounded bg-base-bg text-base-text focus:ring focus:ring-blue-300">{{ qualification.description }}</textarea>
-      {% else %}
-        <p class="p-2 bg-gray-100 rounded whitespace-pre-line">
-          {{ qualification.description|default:"—" }}
-        </p>
-      {% endif %}
-    </div>
+        <!-- Description -->
+        <div class="mb-4">
+            <label class="block font-semibold mb-1">Description</label>
 
-    <!-- Actions -->
-    <div class="flex justify-end space-x-2 mt-6">
-      {% if can_edit %}
-        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-          Save
-        </button>
-          <form method="POST"
-                action="{% url 'training_qualification_remove' qualification.pk %}"
-                x-data
-                @submit.prevent="
-                  if (confirm('Are you sure you want to delete this qualification?')) {
-                    $el.submit();
-                  }
-                ">
-            {% csrf_token %}
+            {% if can_edit %}
+            <textarea
+                name="description"
+                rows="4"
+                class="w-full p-2 border rounded bg-base-bg text-base-text">
+{{ qualification.description }}</textarea>
+
+            {% else %}
+            <p class="p-2 bg-gray-100 rounded whitespace-pre-line">
+                {{ qualification.description|default:"—" }}
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end space-x-2 mt-6">
+            {% if can_edit %}
             <button type="submit"
-                    class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-              Delete
+                    name="action"
+                    value="delete_qualification"
+                    onclick="return confirm('Remove this qualification?')"
+                    class="px-4 py-2 bg-red-500 text-white rounded">
+                Delete
             </button>
-          </form>
-      {% endif %}
+            {% endif %}
 
-      <button type="button" @click="panelOpen = false" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
-        Close
-      </button>
-    </div>
-  </form>
+            <button type="button"
+                    @click="closePanel()"
+                    class="px-4 py-2 bg-base-surface-dark rounded">
+                Close
+            </button>
+
+            {% if can_edit %}
+            <button type="submit"
+                    name="action"
+                    value="save_qualification"
+                    class="px-4 py-2 bg-blue-600 text-white rounded">
+                Save
+            </button>
+            {% endif %}
+        </div>
+
+    </form>
+
+</div>
 </template>
+
 
 <!-- ========================= -->
 <!-- CRITERIA PANEL -->
 <!-- ========================= -->
-<template x-if="panelMode === 'criteria'">
-  <div>
-    <h2 class="text-lg font-semibold mb-4" x-text="activeCriterion.id ? 'Edit Criterion' : 'New Criterion'"></h2>
+<template x-if="isPanel('criteria')">
+<div>
 
-    <form method="post" action="{% url 'training_qualification_criterion_save' qualification.id %}">
-      {% csrf_token %}
-      <input type="hidden" name="criterion_id" x-model="activeCriterion.id">
+    <h2 class="text-lg font-semibold mb-4" x-text="formData.id ? 'Edit Criterion' : 'New Criterion'"></h2>
 
-      <!-- Name -->
-      <div class="mb-4">
-        <label class="block font-semibold mb-1">Name</label>
-        <input type="text" name="name" x-model="activeCriterion.name" class="w-full p-2 bg-base-bg text-base-text border rounded" required>
-      </div>
+    <form method="POST">
 
-      <!-- Description -->
-      <div class="mb-4">
-        <label class="block font-semibold mb-1">Description</label>
-        <textarea name="description" x-model="activeCriterion.description" rows="4" class="w-full p-2 bg-base-bg text-base-text border rounded"></textarea>
-      </div>
+        {% csrf_token %}
+        <input type="hidden" name="criterion_id" x-model="formData.id">
 
-      <!-- Actions -->
-      <div class="flex justify-end space-x-2">
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">
-          Save
-        </button>
-        <form method="POST"
-              :action="`{% url 'training_qualification_criterion_remove' qualification.pk %}`"
-              x-show="activeCriterion.id"
-              @submit.prevent="$el.submit()">
-          {% csrf_token %}
-          <input type="hidden" name="criterion_id" :value="activeCriterion.id">
+        <!-- Name -->
+        <div class="mb-4">
+            <label class="block font-semibold mb-1">Name</label>
 
-          <button type="submit"
-                  @click="if(!confirm('Remove this criterion?')) $event.preventDefault()"
-                  class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-            Remove
-          </button>
-        </form>
+            <input type="text"
+                   name="name"
+                   x-model="formData.name"
+                   required
+                   class="w-full p-2 border rounded bg-base-bg text-base-text">
+        </div>
 
-        <button type="button" @click="panelOpen = false" class="px-4 py-2 bg-base-surface-dark text-base-text rounded">
-          Cancel
-        </button>
-      </div>
+        <!-- Description -->
+        <div class="mb-4">
+            <label class="block font-semibold mb-1">Description</label>
+
+            <textarea name="description"
+                      x-model="formData.description"
+                      rows="4"
+                      class="w-full p-2 border rounded bg-base-bg text-base-text"></textarea>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end space-x-2">
+
+            <template x-if="formData.id">
+                <button type="submit"
+                        name="action"
+                        value="delete_criterion"
+                        onclick="return confirm('Remove this criterion?')"
+                        class="px-4 py-2 bg-red-500 text-white rounded">
+                    Remove
+                </button>
+            </template>
+
+            <button type="button"
+                    @click="closePanel()"
+                    class="px-4 py-2 bg-base-surface-dark rounded">
+                Cancel
+            </button>
+
+            <button type="submit"
+                    name="action"
+                    value="save_criterion"
+                    class="px-4 py-2 bg-blue-600 text-white rounded">
+                Save
+            </button>
+
+        </div>
+
     </form>
-  </div>
+</div>
 </template>
 
 <!-- ========================= -->
 <!-- TRAINERS PANEL -->
 <!-- ========================= -->
-<template x-if="panelMode === 'trainers'">
-  <div>
-    <h2 class="text-lg font-semibold mb-4">Trainers</h2>
+<template x-if="isPanel('trainer_select')">
+<div>
+    <h2 class="text-lg font-semibold mb-4">
+        Select Trainer
+    </h2>
 
-    <div class="space-y-3 mb-6">
-      {% for trainer in trainers %}
-      <div class="flex justify-between items-center p-3 border rounded bg-base-surface-dark">
-        <div>
-          <p class="font-semibold">{{ trainer.user.display_name }}</p>
-          <p class="text-sm text-gray-400">
-            {{ trainer.role|default:"Trainer" }}
-          </p>
+    <div x-data="userSearch({ multiple: false })"
+         x-init="$watch('search', () => performSearch())">
+
+        <input
+            type="text"
+            x-model="search"
+            @input.debounce.300ms="performSearch()"
+            placeholder="Search users..."
+            class="w-full p-2 border rounded
+           bg-base-bg
+           text-base-text
+           border-base-border
+           focus:ring focus:ring-blue-500">
+
+        <div class="mt-2 border rounded max-h-60 overflow-y-auto">
+            <template x-for="user in results" :key="user.id">
+
+                <div
+                    @click="$dispatch('trainer-user-selected', user)"
+                    class="p-2 hover:bg-base-surface cursor-pointer">
+
+                    <span x-text="user.name"></span>
+
+                </div>
+
+            </template>
         </div>
 
-        {% if can_manage_trainers %}
-        <button class="text-sm text-blue-500" @click="activeTrainer = {{ trainer.id }}; panelMode = 'trainer_edit'">
-          Edit
-        </button>
-        {% endif %}
-      </div>
-      {% endfor %}
     </div>
+</div>
+</template>
 
-    {% if can_manage_trainers %}
-    <button @click="panelMode = 'trainer_invite'" class="px-4 py-2 bg-green-600 text-base-text rounded">
-      Invite Trainer
-    </button>
-    {% endif %}
+<template x-if="isPanel('trainer_edit')">
+<div>
+    <h2 class="text-lg font-semibold mb-4" x-text="formData.id ? 'Edit Trainer' : 'Add Trainer'"></h2>
+    <form method="POST">
+        {% csrf_token %}
 
-    <div class="flex justify-end mt-6">
-      <button type="button" @click="panelOpen = false" class="px-4 py-2 bg-base-surface-dark text-base-text rounded">
-        Close
-      </button>
-    </div>
-  </div>
+        <input type="hidden" name="user_id" x-model="formData.user_id">
+
+        <!-- User Display (Read Only) -->
+        <div class="mb-4">
+            <label class="block font-semibold mb-1">User</label>
+
+            <div class="p-3 border rounded bg-base-surface-dark">
+                <span x-text="formData.name"></span>
+            </div>
+        </div>
+
+        <!-- Role Dropdown -->
+        <div class="mb-4">
+            <label class="block font-semibold mb-1">Role</label>
+
+            <select
+                name="role"
+                x-model="formData.role"
+                class="w-full p-2 border rounded bg-base-bg text-base-text">
+
+                <option value="Trainer">Trainer</option>
+                <option value="Senior Trainer">Senior Trainer</option>
+                <option value="Manager">Manager</option>
+
+            </select>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-end space-x-2">
+
+            <!-- Remove -->
+            <template x-if="formData.id">
+                <button type="submit"
+                        name="action"
+                        value="remove_trainer"
+                        onclick="return confirm('Remove this trainer?')"
+                        class="px-4 py-2 bg-red-500 text-white rounded">
+                    Remove
+                </button>
+            </template>
+
+            <button type="button"
+                    @click="closePanel()"
+                    class="px-4 py-2 bg-base-surface-dark rounded">
+                Cancel
+            </button>
+
+            <button type="submit"
+                    name="action"
+                    value="save_trainer"
+                    class="px-4 py-2 bg-blue-600 text-white rounded">
+                Save
+            </button>
+        </div>
+    </form>
+</div>
 </template>
 
 {% endblock %}
