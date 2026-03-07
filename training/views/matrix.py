@@ -27,7 +27,7 @@ class TrainingMatrixView(TrainingContextMixin, UnitHubTemplateView):
         context["users"] = [
             {
                 "id": str(user.id),
-                "username": user.username,
+                "display_name": user.display_name,
                 "qualifications": user_qual_map.get(str(user.id), []),
             }
             for user in base_users

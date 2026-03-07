@@ -8,7 +8,7 @@
       {% for user in users %}
         {
           id: '{{ user.id }}',
-          username: '{{ user.username }}',
+          display_name: '{{ user.display_name }}',
           qualifications: {{ user.qualifications|safe }}
         },
       {% endfor %}
@@ -83,7 +83,7 @@
           <tr class="bg-base-bg even:bg-base-surface">
             <!-- Sticky Player cell -->
             <td class="border p-2 whitespace-nowrap sticky left-0 bg-base-bg text-base-text z-20">
-              <a :href="`/profile/${user.id}/training/`" target="_blank" class="hover:underline" x-text="user.username"></a>
+              <a :href="`/profile/${user.id}/training/`" target="_blank" class="hover:underline" x-text="user.display_name"></a>
             </td>
             <template x-for="qual in qualifications" :key="qual.id">
               <td class="border p-2 text-center text-base-text" x-show="selectedQualifications.includes(qual.id)">
@@ -126,16 +126,16 @@
           return [...this.users].sort((a, b) => {
             if (this.sortColumn === 'player') {
               return this.sortAsc
-                ? a.username.localeCompare(b.username)
-                : b.username.localeCompare(a.username);
+                ? a.display_name.localeCompare(b.display_name)
+                : b.display_name.localeCompare(a.display_name);
             } else {
               const qualId = this.sortColumn;
               const aTick = a.qualifications.includes(qualId) ? 1 : 0;
               const bTick = b.qualifications.includes(qualId) ? 1 : 0;
               if (bTick !== aTick) return this.sortAsc ? bTick - aTick : aTick - bTick;
               return this.sortAsc
-                ? a.username.localeCompare(b.username)
-                : b.username.localeCompare(a.username);
+                ? a.display_name.localeCompare(b.display_name)
+                : b.display_name.localeCompare(a.display_name);
             }
           });
         }
