@@ -28,4 +28,22 @@ class QualificationAdmin(ModelAdmin):
 
 @admin.register(UserQualification)
 class UserQualificationAdmin(ModelAdmin):
+    fields = ("user", "qualification", "date_awarded", "latest_passed", "awarded_by")
     list_display = ('user', 'qualification')
+
+    search_fields = (
+        "user__display_name",
+        "qualification__name",
+    )
+
+    autocomplete_fields = (
+        "user",
+        "qualification",
+        "awarded_by"
+    )
+
+    def get_readonly_fields(self, request, obj=None):
+        # Only allow edit on a new object
+        if obj:
+            return ("user", "qualification")
+        return ()
