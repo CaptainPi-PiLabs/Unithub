@@ -64,7 +64,7 @@ class TrainingMatrixView(TrainingContextMixin, UnitHubTemplateView):
         """
         user_ids = [user.id for user in users]
         quals = UserQualification.objects.filter(
-            user_id__in=user_ids, latest_passed__isnull=False
+            user_id__in=user_ids
         ).values("user_id", "qualification_id")
 
         mapping = {}
