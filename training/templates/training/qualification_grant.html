@@ -1,0 +1,91 @@
+{% extends "common/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
+{% block content %}
+
+<div x-data="qualificationPage({{ qualification.id }})">
+
+<h2 class="text-xl font-semibold mb-4">
+    Grant Qualification
+</h2>
+
+<div class="rounded-2xl bg-base-surface p-6 shadow-md border border-base-border mb-6">
+    <div class="mb-4">
+        <div class="text-sm text-base-muted">
+            Qualification: {{ qualification.name }}
+        </div>
+        <div class="text-sm text-base-muted">
+            Trainer: {{ trainer }}
+        </div>
+        <div class="text-sm text-base-muted">
+            Date: {% now "M j, Y" %}
+        </div>
+    </div>
+
+</div>
+
+<!-- Member Search -->
+<div class="mb-6">
+    <input
+        type="text"
+        placeholder="Search members..."
+        x-model="search"
+        class="w-full p-2 rounded-lg border border-base-border bg-base-bg"
+    >
+    <div class="mt-2 max-h-60 overflow-y-auto border border-base-border rounded-lg">
+        <template
+            x-for="member in filteredMembers"
+            :key="member.id">
+            <div
+                @click="addMember(member)"
+                class="p-3 cursor-pointer hover:bg-base-surface flex justify-between">
+                <span x-text="member.name"></span>
+                <span class="text-sm text-base-muted">Click to add</span>
+            </div>
+        </template>
+    </div>
+</div>
+
+<!-- Selected Members -->
+<div class="mb-6">
+    <h3 class="font-semibold mb-2">Selected Members</h3>
+    <div class="flex flex-wrap gap-2">
+        <template x-for="member in selectedMembers" :key="member.id">
+            <div
+                @click="removeMember(member.id)"
+                class="px-3 py-1 rounded-lg bg-base-accent text-white cursor-pointer">
+                <span x-text="member.name"></span>
+                <span class="ml-2">×</span>
+            </div>
+        </template>
+    </div>
+</div>
+
+
+<!-- Certify Button -->
+<form method="POST" id="certifyForm">
+    {% csrf_token %}
+
+    <input type="hidden" name="members" id="membersField">
+
+    <button
+        type="submit"
+        @click.prevent="certifyMembers()"
+        class="rounded-lg bg-green-600 px-6 py-2 text-white font-medium">
+        Certify Qualification
+    </button>
+</form>
+
+</div>
+
+{{ active_members_json|json_script:"active_members" }}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'training/js/qualification_grant.js' %}"></script>
+{% endblock %}
