@@ -14,7 +14,7 @@ from permissions.engine import has_orbat_permission
 
 class ORBATSectionDetailView(ORBATContextMixin, UnitHubDetailView):
     model = Section
-    template_name = 'orbat/section_detail.html'
+    template_name = 'orbat/section/detail.html'
     slug_field = 'slug'
     slug_url_kwarg = 'section_slug'
     context_object_name = 'section'
@@ -58,13 +58,16 @@ class ORBATSectionDetailView(ORBATContextMixin, UnitHubDetailView):
 
         return context
 
+    def post(self, request, *args, **kwargs):
+        pass
+
 class ORBATSectionHistoryView(ORBATContextMixin, UnitHubListView):
     pass
 
 class ORBATSectionEditView(ORBATContextMixin, UnitHubUpdateView):
     model = Section
     form_class = SectionForm
-    template_name = "orbat_section_form.html"
+    template_name = "orbat/section/edit.html"
     slug_field = 'slug'
     slug_url_kwarg = 'section_slug'
     context_object_name = 'section'
@@ -89,16 +92,23 @@ class ORBATSectionEditView(ORBATContextMixin, UnitHubUpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         section = self.object
-        user = self.request.user
 
-        context["can_manage_members"] = has_orbat_permission(user, OrbatActions.MODIFY_SECTION, section)
+        context["slots"] = get_section_slot_snapshots(section)
 
-        context["self_user_id"] = user.id
+        context["colour_choices"] = [
+            ("", "None"),
+            ("Gold", "Gold"),
+            ("Green", "Green"),
+            ("Blue", "Blue"),
+            ("Red", "Red"),
+        ]
 
-        context["breadcrumbs"] = [
-            {"name": "ORBAT", "url": "/orbat/sections/"},
-            {"name": section.name, "url": reverse("orbat_section_detail", kwargs={"section_slug": section.slug})},
-            {"name": "Edit", "url": None},
+        context["rank_choices"] = [
+            ("Private", "Private"),
+            ("Lance Corporal", "Lance Corporal"),
+            ("Corporal", "Corporal"),
+            ("Sergeant", "Sergeant"),
+            ("Lieutenant", "Lieutenant"),
         ]
 
         return context

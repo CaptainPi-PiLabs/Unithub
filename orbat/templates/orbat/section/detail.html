@@ -1,4 +1,5 @@
 {% extends "common/base.html" %}
+{% load static %}
 
 {% block extra_head %}
 <meta name="csrf-token" content="{{ csrf_token }}">
@@ -119,7 +120,7 @@
                 {% endif %}
 
                 {% if can_edit_section %}
-                    <a href="{% url 'orbat_section_detail' section.slug %}"
+                    <a href="{% url 'orbat_section_edit' section.slug %}"
                        class="block bg-blue-500 text-white px-4 py-2 rounded text-center">
                         Edit
                     </a>
@@ -135,14 +136,9 @@
     <div x-show="activeTab === 'history'" class="mt-4" x-data="{ loaded: false }"
      x-init="$watch('activeTab', value => { if(value==='history'){ loaded=true } })">
 
-        <template x-if="loaded">
-            <div id="timeline-container">
-                {% render_timeline section=section %}
-            </div>
-        </template>
     </div>
 
-    {% include "orbat/partials/section_detail_slide_panel.html" %}
+    {% include "orbat/partials/slide_panels/section_detail_slide_panel.html" %}
 
 </div>
 
@@ -153,55 +149,6 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
-function sectionPage(section_id) {
-    return {
-        activeTab: 'details',
-        panelOpen: false,
-        panelMode: null,
-        activeSlot: {},
-        slotData: JSON.parse(document.getElementById("slots_json").textContent),
-        canManageSlots: JSON.parse(document.getElementById("can_manage_slots").textContent),
-
-        openSlot(slotId = null) {
-            if (slotId && this.slotData[slotId]) {
-                this.activeSlot = {...this.slotData[slotId]};
-            } else {
-                this.activeSlot = {name: '', colour: '', is_officer: false};
-            }
-            this.panelMode = 'slots';
-            this.panelOpen = true;
-        },
-
-        closePanel() {
-            this.panelOpen = false;
-            this.panelMode = null;
-            this.activeSlot = {};
-        },
-
-        setAction() {
-            this.$refs.slotForm.action = this.activeSlot.id
-                ? `/orbat/section/${section_id}/slot/${this.activeSlot.id}/edit/`
-                : `/orbat/section/${section_id}/slot/create/`;
-        },
-
-        submitSlot() {
-            const url = this.activeSlot.id
-                ? `/orbat/section/${section_id}/slot/${this.activeSlot.id}/edit/`
-                : `/orbat/section/${section_id}/slot/create/`;
-
-            const formData = new FormData();
-            formData.append('name', this.activeSlot.name);
-            formData.append('colour', this.activeSlot.colour);
-            formData.append('is_officer', this.activeSlot.is_officer ? '1' : '0');
-
-            fetch(url, {method: 'POST', headers: {"X-CSRFToken": this.csrfToken()}, body: formData})
-        },
-
-        csrfToken() {
-            return document.querySelector('[name=csrfmiddlewaretoken]').value;
-        }
-    };
-}
-</script>
+<script src="{% static 'common/js/slidePanelBase.js' %}"></script>
+<script src="{% static 'orbat/js/section_detail.js' %}"></script>
 {% endblock %}

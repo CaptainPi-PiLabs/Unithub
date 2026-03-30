@@ -5,7 +5,7 @@ from orbat.views.applications.onboarding import UnitApplicationOnboarding
 from orbat.views.applications.overview import ORBATApplicationOverview
 from orbat.views.history_views import ORBATTimelineView
 from orbat.views.overview_views import ORBATOverviewView, ORBATMemberView, ORBATSectionListView
-from orbat.views.section_views import ORBATSectionDetailView, ORBATSectionHistoryView
+from orbat.views.section_views import ORBATSectionDetailView, ORBATSectionHistoryView, ORBATSectionEditView
 
 urlpatterns = [
     # Post mutation endpoints
@@ -24,6 +24,7 @@ urlpatterns = [
     path("sections/", ORBATSectionListView.as_view(), name="orbat_section_list"),
     path("section/<slug:section_slug>/", ORBATSectionDetailView.as_view(), name="orbat_section_detail"),
     path("section/<slug:section_slug>/history/", ORBATSectionHistoryView.as_view(), name="orbat_section_history"),
+    path("section/<slug:section_slug>/edit/", ORBATSectionEditView.as_view(), name="orbat_section_edit"),
     path("applications/", ORBATApplicationOverview.as_view(), name="orbat_applications"),
     path("applications/onboarding/", UnitApplicationOnboarding.as_view(), name="orbat_applications_onboarding_list"),
     path("applications/onboarding/<int:pk>/", UnitApplicationOnboarding.as_view(), name="orbat_applications_onboarding"),

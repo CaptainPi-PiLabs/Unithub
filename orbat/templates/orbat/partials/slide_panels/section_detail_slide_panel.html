@@ -1,0 +1,90 @@
+{% extends "common/partials/base_slide_panel.html" %}
+
+{% block slidePanel %}
+
+<!-- Slot Template -->
+<template x-if="isPanel('edit_slot')">
+    <div>
+        <h2 class="text-lg font-semibold mb-4">Edit Slot</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit_slot">
+
+            <div class="mb-4">
+                <label class="block font-semibold mb-1">Slot Name</label>
+                <input type="text" name="discord_id" x-model="formData.name"
+                       class="w-full p-2 bg-base-bg text-base-text rounded border border-base-border"
+                        required>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-semibold mb-1">Colour</label>
+                <select name="colour" x-model="formData.colour" class="w-full p-2 border rounded bg-base-bg text-base-text focus:ring focus:ring-blue-300">
+                    <option value="">-</option>
+                    <option>Gold</option>
+                    <option>Green</option>
+                    <option>Blue</option>
+                    <option>Red</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-semibold mb-1">Rank</label>
+                <select name="rank" x-model="formData.rank" class="w-full p-2 border rounded bg-base-bg text-base-text focus:ring focus:ring-blue-300">
+                    <option value="">Private</option>
+                    <option>Lance Corporal</option>
+                    <option>Corporal</option>
+                    <option>Sergeant</option>
+                    <option>Lieutenant</option>
+                </select>
+            </div>
+
+            <div class="flex justify-end space-x-2">
+                <button type="button"
+                        @click="closePanel()"
+                        class="px-4 py-2 bg-base-surface-dark rounded">
+                    Cancel
+                </button>
+
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded">
+                    Create
+                </button>
+            </div>
+
+        </form>
+    </div>
+</template>
+
+<template x-if="isPanel('edit_section')">
+    <div>
+        <h2 class="text-lg font-semibold mb-4">Edit Section</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="join_section">
+        </form>
+    </div>
+</template>
+
+<template x-if="isPanel('join_section')">
+    <div>
+        <h2 class="text-lg font-semibold mb-4">Join Section</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="join_section">
+        </form>
+    </div>
+</template>
+
+<template x-if="isPanel('leave_section')">
+    <div>
+        <h2 class="text-lg font-semibold mb-4">Leave Section</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="leave_section">
+        </form>
+    </div>
+</template>
+
+
+{% endblock %}

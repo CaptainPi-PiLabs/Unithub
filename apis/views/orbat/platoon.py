@@ -14,8 +14,31 @@ class PlatoonAPI(OrbatAPIView):
     """
     object_permission_required = False
     required_permissions = {
+        "GET": [OrbatActions.READ_PLATOON],
         "POST": [OrbatActions.CREATE_PLATOON]
     }
+
+    def get(self, request, *args, **kwargs):
+        platoons = Platoon.objects.all().prefetch_related("sections")
+
+        platoon_data = []
+        for platoon in platoons:
+
+            section_data = []
+            for section in platoon.sections:
+                section_data.append({
+                    "id": section.id,
+                    "name": section.name,
+                })
+
+
+            platoon_data.append({
+                "id": platoon.id,
+                "name": platoon.name,
+                "sections": section_data,
+            })
+
+        return Response(platoon_data)
 
     def post(self, request, *args, **kwargs):
         data = request.data

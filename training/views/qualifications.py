@@ -203,9 +203,9 @@ class QualificationDetailView(TrainingContextMixin, UnitHubDetailView):
 
         # Execute handler
         handler = getattr(self, config["handler"])
-        handler(request)
+        response = handler(request)
 
-        return redirect(self.request.path)
+        return response or redirect(self.request.path)
 
     def _save_qualification(self, request):
         self.object.name = request.POST.get("name")
