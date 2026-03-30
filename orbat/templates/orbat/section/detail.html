@@ -132,10 +132,9 @@
     </div>
 
     <!-- History Tab -->
-    {% load timeline_tags %}
     <div x-show="activeTab === 'history'" class="mt-4" x-data="{ loaded: false }"
      x-init="$watch('activeTab', value => { if(value==='history'){ loaded=true } })">
-
+        <p>Coming Soon</p>
     </div>
 
     {% include "orbat/partials/slide_panels/section_detail_slide_panel.html" %}

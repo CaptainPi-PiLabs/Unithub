@@ -3,70 +3,10 @@ from datetime import timedelta, datetime
 from uuid import UUID
 
 from django.contrib.auth import get_user_model
-from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
 from orbat.models.sections import Section
-from timeline.models import TimelineEntry, TimelineTypes
 
-
-def add_entry(event_type, user, section=None, description="", snapshot_name="", related_object=None, created_by=None, timestamp=None):
-    entry = TimelineEntry(
-        event_type=event_type,
-        user=user,
-        section=section,
-        description=description,
-        snapshot_name=snapshot_name,
-        timestamp=timestamp or timezone.now()
-    )
-    if related_object:
-        entry.content_type = ContentType.objects.get_for_model(related_object)
-        entry.object_id = related_object.id
-    entry.save()
-    return entry
-
-def get_recent_orbat_timeline(user_qs=None, section=None):
-    three_months_ago = timezone.now() - timedelta(days=90)
-    return get_timeline_entries(
-        user_qs=user_qs,
-        section=section,
-        # start_date=three_months_ago,
-        exclude_types=[TimelineTypes.TRAINING_COMPLETED],
-    )
-
-
-def get_recent_training_timeline(user_qs=None, section=None):
-    six_months_ago = timezone.now() - timedelta(days=180)
-    return get_timeline_entries(
-        user_qs=user_qs,
-        section=section,
-        start_date=six_months_ago,
-        event_types=[TimelineTypes.TRAINING_COMPLETED],
-    )
-
-def get_timeline_entries(user_qs=None, section=None, start_date=None, end_date=None, event_types=None, exclude_types=None):
-    """
-    Get timeline entries scoped to users and optionally a section and date range.
-    """
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
-
-    if not user_qs or not user_qs.exists():
-        user_qs = User.objects.all()
-
-    qs = TimelineEntry.objects.filter(user__in=user_qs)
-
-    if section:
-        qs = qs.filter(section=section)
-    if start_date:
-        qs = qs.filter(timestamp__gte=start_date)
-    if end_date:
-        qs = qs.filter(timestamp__lte=end_date)
-    if event_types:
-        qs = qs.filter(event_type__in=event_types)
-    if exclude_types:
-        qs = qs.exclude(event_type__in=exclude_types)
-    return qs
 
 def build_timeline_context(timeline_qs):
     """

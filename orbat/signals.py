@@ -1,12 +1,8 @@
-from django.db.models import Q
-from django.db.models.signals import post_save, post_delete, pre_save
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 
-from orbat.models.sections import SectionSlot, SectionSlotAssignment, SectionSlotDetail, Section
-from timeline.models import TimelineTypes
-from timeline.utils import add_entry
-from users.models import UserStatus, CustomUser
+from orbat.models.sections import SectionSlot,  SectionSlotDetail, Section
 
 
 @receiver(post_save, sender=Section)
