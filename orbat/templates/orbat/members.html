@@ -5,15 +5,16 @@
 <form id="member-filters"
       hx-get="."
       hx-target="#members-table"
-      hx-trigger="keyup changed delay:300ms from:input">
+      hx-trigger="keyup changed delay:300ms from:input"
+      class="flex flex-wrap items-center gap-4 mb-4">
 
-    <input type="text"
-           name="search"
-           placeholder="Search members..."
-           class="px-2 py-1.5 border rounded w-full max-w-md">
-    <div class="mb-4">
-
-    <select name="status" hx-get="." hx-trigger="change" hx-target="#members-table" hx-include="#member-filters" class="p-2 border rounded">
+    <!-- Status dropdown on the left -->
+    <select name="status"
+            hx-get="."
+            hx-trigger="change"
+            hx-target="#members-table"
+            hx-include="#member-filters"
+            class="p-2 rounded bg-base-bg text-base-text border border-base-border min-w-[180px]">
         <option value="">All Active</option>
         <option value="section_member">Section Member</option>
         <option value="active_delta">Active Delta</option>
@@ -23,7 +24,12 @@
         <option value="retired">Retired</option>
         <option value="inactive">Inactive</option>
     </select>
-    </div>
+
+    <!-- Search box on the right -->
+    <input type="text"
+           name="search"
+           placeholder="Search members..."
+           class="px-2 py-1.5 bg-base-bg text-base-text border border-base-border rounded flex-1 min-w-[200px]">
 </form>
 
 <div class="overflow-x-auto max-w-6xl mx-auto">
