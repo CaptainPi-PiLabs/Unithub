@@ -1,0 +1,5 @@
+function applicationPage() {
+    return {
+        ...slidePanelBase(),
+    }
+}

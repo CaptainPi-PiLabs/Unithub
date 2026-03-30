@@ -1,0 +1,42 @@
+{% extends "common/partials/base_slide_panel.html" %}
+
+{% block slidePanel %}
+
+<!-- Slot Template -->
+<template x-if="isPanel('unit_application_create')">
+<div>
+    <h2 class="text-lg font-semibold mb-4">Create New Application</h2>
+    <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create_unit_application">
+
+        <div class="mb-4">
+            <label class="block font-semibold mb-1">Discord ID</label>
+            <input type="text" name="discord_id" x-model="formData.discord_id"
+                   class="w-full p-2 bg-base-bg text-base-text rounded border border-base-border">
+        </div>
+
+        <div class="mb-4">
+            <label class="block font-semibold mb-1">Discord Username</label>
+            <input type="text" name="discord_username" x-model="formData.discord_username"
+                   class="w-full p-2 bg-base-bg text-base-text rounded border border-base-border">
+        </div>
+
+        <div class="flex justify-end space-x-2">
+            <button type="button"
+                    @click="closePanel()"
+                    class="px-4 py-2 bg-base-surface-dark rounded">
+                Cancel
+            </button>
+
+            <button type="submit"
+                    class="px-4 py-2 bg-blue-600 text-white rounded">
+                Create
+            </button>
+        </div>
+    </form>
+
+</div>
+</template>
+
+{% endblock %}

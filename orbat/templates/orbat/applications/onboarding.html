@@ -1,0 +1,128 @@
+{% extends "common/base.html" %}
+{% load static %}
+
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
+{% block content %}
+<div x-data="onboardingPage()">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {% if focused_application %}
+        <!-- Focused Application -->
+        <div class="lg:col-span-2 rounded-2xl bg-base-surface p-6 shadow-md border border-base-border">
+            <h2 class="text-xl font-semibold mb-4">Application Details</h2>
+
+            <div class="space-y-4">
+                <div>
+                    <div>
+                        <p><b>Discord Name:</b> {{ focused_application.external_account.username }}</p>
+                    </div>
+                    <div class="text-sm text-base-muted">
+                        Submitted {{ focused_application.date|date:"M j, Y" }}
+                    </div>
+                </div>
+            <div>
+
+            {% if can_manage %}
+                {% if focused_application.user %}
+                    <p><b>User:</b> {{ focused_application.user.display_name }}</p>
+                    <button
+                        @click="openPanel('user_edit')"
+                        class="rounded-lg bg-green-600 px-4 py-2 text-white text-sm font-medium hover:opacity-90">
+                        Edit User
+                    </button>
+                {% else %}
+                    <button
+                        @click="openPanel('user_edit')"
+                        class="rounded-lg bg-green-600 px-4 py-2 text-white text-sm font-medium hover:opacity-90">
+                        Create User
+                    </button>
+                {% endif %}
+            {% else %}
+                {% if focused_application.user %}
+                    <p><b>User:</b> {{ focused_application.user.display_name }}</p>
+                {% else %}
+                    <p><i>No user created yet</i></p>
+                {% endif %}
+            {% endif %}
+            </div>
+            <div>
+                <h3 class="font-semibold">Contact History</h3>
+                <p class="text-sm text-base-muted">
+                    {{ focused_application.reached_out }}
+                </p>
+                <h3 class="font-semibold">Planned Event</h3>
+                <p class="text-sm text-base-muted">
+                    {{ focused_application.event|default:"No event planned" }}
+                </p>
+            </div>
+
+            <div class="flex gap-3 mt-6">
+
+                {% if can_deny %}
+                <button
+                        @click="openPanel('deny')"
+                        class="rounded-lg bg-red-600 px-4 py-2 text-base-text text-sm font-medium hover:opacity-90">
+                    Deny Application
+                </button>
+                {% endif %}
+                {% if can_approve %}
+                <button
+                        @click="openPanel('approve')"
+                        class="rounded-lg bg-green-600 px-4 py-2 text-base-text text-sm font-medium hover:opacity-90">
+                    Approve / Passed
+                </button>
+                {% endif %}
+
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+  <!-- All Applications -->
+  <div class="rounded-2xl bg-base-surface p-6 shadow-md border border-base-border">
+    <h2 class="text-xl font-semibold mb-4">All Pending Applications</h2>
+    <form method="post" action="">
+      {% csrf_token %}
+      <div class="space-y-3">
+        {% for app in other_applications %}
+          <label class="flex items-center justify-between rounded-lg border border-base-border p-3">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" name="selected_apps" value="{{ app.id }}"
+                     class="h-4 w-4 rounded border-base-border text-base-accent focus:ring-base-accent">
+              <div>
+                <div class="font-medium text-base-text">{{ app.external_account.username }}</div>
+                <div class="text-sm text-base-muted">{{ app.get_status_display }}</div>
+              </div>
+            </div>
+            <a href="{% url 'orbat_applications_onboarding' app.id %}"
+               class="px-3 py-1.5 text-sm bg-base-accent text-base-text rounded hover:bg-base-accent/80">
+                Focus
+            </a>
+          </label>
+        {% empty %}
+          <div class="text-sm text-base-muted">No applications</div>
+        {% endfor %}
+      </div>
+
+      <div class="mt-4">
+        <button type="submit"
+          class="w-full rounded-lg bg-base-accent px-4 py-2 text-base-text text-sm font-medium hover:opacity-90">
+          Bulk Action
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+    {% include 'orbat/partials/slide_panels/applications_onboarding_slide_panel.html' %}
+</div>
+
+{{ application_json|json_script:"applicationData" }}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'common/js/slidePanelBase.js' %}"></script>
+<script src="{% static 'orbat/js/onboarding.js' %}"></script>
+{% endblock %}

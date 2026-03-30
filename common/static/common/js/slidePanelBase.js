@@ -4,8 +4,15 @@ function slidePanelBase() {
         panelMode: null,
         formData: {},
 
+        getDefaultSlideData() {
+            return {};
+        },
+
         openPanel(mode, data = {}) {
             this.panelMode = mode;
+            if (!data) {
+                data = this.getDefaultSlideData();
+            }
             this.formData = JSON.parse(JSON.stringify(data));
             this.panelOpen = true;
         },

@@ -1,7 +1,8 @@
 from django.urls import path
 
 from orbat.views.api_wrappers import *
-from orbat.views.application_views import ORBATApplicationOverview, UnitApplicationOnboarding, UnitApplicationUserManager, UnitApplicationDenyView, UnitApplicationApproveView
+from orbat.views.applications.onboarding import UnitApplicationOnboarding
+from orbat.views.applications.overview import ORBATApplicationOverview
 from orbat.views.history_views import ORBATTimelineView
 from orbat.views.overview_views import ORBATOverviewView, ORBATMemberView, ORBATSectionListView
 from orbat.views.section_views import ORBATSectionDetailView, ORBATSectionHistoryView
@@ -26,7 +27,4 @@ urlpatterns = [
     path("applications/", ORBATApplicationOverview.as_view(), name="orbat_applications"),
     path("applications/onboarding/", UnitApplicationOnboarding.as_view(), name="orbat_applications_onboarding_list"),
     path("applications/onboarding/<int:pk>/", UnitApplicationOnboarding.as_view(), name="orbat_applications_onboarding"),
-    path("applications/onboarding/<int:pk>/usermanager/", UnitApplicationUserManager.as_view(), name="orbat_applications_onboarding_usermanager"),
-    path("applications/onboarding/<int:pk>/approve/", UnitApplicationApproveView.as_view(), name="orbat_applications_onboarding_approve"),
-    path("applications/onboarding/<int:pk>/deny/", UnitApplicationDenyView.as_view(), name="orbat_applications_onboarding_deny"),
 ]

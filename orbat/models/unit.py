@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+from common.admin_logging import log_admin_addition
 from common.temporal.models import ApplicationBase
 from users.models import UnitMembership
 
@@ -22,7 +23,7 @@ class UnitApplication(ApplicationBase):
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
     )
     external_account = models.ForeignKey(
         "external_auth.DiscordAccount",
@@ -56,7 +57,10 @@ class UnitApplication(ApplicationBase):
         # Promote user
         self.user.status = UserStatus.ACTIVE
         self.user.save()
-        UnitMembership.objects.create(user=self.user)
+        membership = UnitMembership.objects.create(user=self.user)
+
+        if actioned_by:
+            log_admin_addition(actioned_by, membership, "Created during application approval")
 
         # Close application
         self.status = self.STATUS_PASSED

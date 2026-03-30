@@ -1,0 +1,131 @@
+{% extends "common/partials/base_slide_panel.html" %}
+
+{% block slidePanel %}
+
+<template x-if="isPanel('user_edit')">
+    <div>
+        <h2 class="text-lg font-semibold mb-4"
+            x-text="formData.user_id ? 'Edit User' : 'Create User'">
+        </h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_user">
+            <input type="hidden" name="user_id" x-model="formData.user_id">
+            <div class="mb-4">
+                <label class="block font-semibold mb-1">Name</label>
+                <input type="text" name="name" x-model="formData.name"
+                       class="w-full p-2 border rounded border-base-border bg-base-surface text-base-text"
+                       required>
+            </div>
+            <div class="flex justify-end space-x-2">
+                {% if can_deny %}
+                <template x-if="formData.user_id">
+                    <button
+                        type="submit"
+                        name="action"
+                        value="delete_user"
+                        onclick="return confirm('Delete this user?')"
+                        class="px-4 py-2 bg-red-600 text-white rounded">
+                        Delete
+                    </button>
+                </template>
+                {% endif %}
+                <button type="button"
+                        @click="closePanel()"
+                        class="px-4 py-2 bg-base-surface-dark rounded">
+                    Cancel
+                </button>
+
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded"
+                        x-text="formData.user_id ? 'Save' : 'Create'">
+                </button>
+            </div>
+        </form>
+    </div>
+</template>
+
+<template x-if="isPanel('app_edit')">
+    <div>
+        <h2 class="text-lg font-semibold mb-4">Edit Application</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_application">
+            <div class="mb-4">
+                <label class="block font-semibold mb-1">Teamspeak ID</label>
+                <input type="number" name="teamspeak_id" x-model="formData.teamspeak_id"
+                       class="w-full p-2 border rounded border-base-border bg-base-surface text-base-text">
+            </div>
+            <div class="mb-4">
+                <label class="block font-semibold mb-1">Over 18</label>
+                <input type="checkbox" name="over_18" x-model="formData.over_18"
+                       class="w-full p-2 border rounded border-base-border bg-base-surface text-base-text">
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button type="button"
+                        @click="closePanel()"
+                        class="px-4 py-2 bg-base-surface-dark rounded">
+                    Cancel
+                </button>
+
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded">
+                    Create
+                </button>
+            </div>
+        </form>
+    </div>
+</template>
+
+<template x-if="isPanel('deny')">
+    <div>
+        <h2 class="text-lg font-semibold mb-4">Deny Application</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="deny_application">
+            <div class="mb-4">
+                <label class="block font-semibold mb-1">Reason</label>
+                <input type="text" name="reason"
+                       class="w-full p-2 border rounded border-base-border bg-base-surface text-base-text"
+                       required>
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button type="button"
+                        @click="closePanel()"
+                        class="px-4 py-2 bg-base-surface-dark rounded">
+                    Cancel
+                </button>
+
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded">
+                    Submit
+                </button>
+            </div>
+        </form>
+    </div>
+</template>
+
+<template x-if="isPanel('approve')">
+    <div>
+        <h2 class="text-lg font-semibold mb-4">Approve Application</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="approve_application">
+            <div class="flex justify-end space-x-2">
+                <button type="button"
+                        @click="closePanel()"
+                        class="px-4 py-2 bg-base-surface-dark rounded">
+                    Cancel
+                </button>
+
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded">
+                    Submit
+                </button>
+            </div>
+        </form>
+    </div>
+</template>
+
+
+{% endblock %}

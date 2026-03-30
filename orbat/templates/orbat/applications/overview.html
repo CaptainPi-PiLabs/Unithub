@@ -1,12 +1,23 @@
 {% extends "common/base.html" %}
+{% load static %}
 
 {% block content %}
 
-<div class="space-y-8">
+<div class="space-y-8" x-data="applicationPage()" @close-panel.window="panelOpen = false" x-cloak>
 
     <!-- Unit Applications -->
     {% if unit_application_perms %}
-    <h2 class="text-xl font-semibold mb-4">Unit Applications</h2>
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold">Unit Applications</h2>
+
+        {% if unit_application_can_create %}
+        <button
+            @click="openPanel('unit_application_create')"
+            class="rounded-lg bg-base-accent px-4 py-2 text-white text-sm font-medium hover:opacity-90">
+            New Application
+        </button>
+        {% endif %}
+    </div>
     {% if unit_applications %}
     <div>
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -21,10 +32,12 @@
                 <div class="text-sm text-base-muted mb-4">
                   Submitted {{ applicant.date|date:"M j, Y" }}
                 </div>
+                  {% if unit_application_can_manage %}
                 <a href="{% url 'orbat_applications_onboarding' applicant.id %}"
                    class="inline-block rounded-lg bg-base-accent px-4 py-2 text-white text-sm font-medium hover:opacity-90">
                   Start Onboarding
                 </a>
+                  {% endif %}
               </div>
             {% endfor %}
           </div>
@@ -64,6 +77,14 @@
         </div>
       {% endif %}
     {% endif %}
+
+    {% include "orbat/partials/slide_panels/applications_overview_slide_panel.html" %}
+
 </div>
 
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'common/js/slidePanelBase.js' %}"></script>
+<script src="{% static 'orbat/js/applications.js' %}"></script>
 {% endblock %}
