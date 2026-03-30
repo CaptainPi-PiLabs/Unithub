@@ -1,3 +1,4 @@
+import re
 import uuid
 
 from django.conf import settings
@@ -166,3 +167,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         self.save(update_fields=["status"])
 
         self._log_status_transition(old_status, new_status, actioned_by, reason)
+
+    @staticmethod
+    def normalize_username(name):
+        return re.sub(r"[^a-z0-9]", "", name.lower())
