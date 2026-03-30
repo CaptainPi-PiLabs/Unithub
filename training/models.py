@@ -95,3 +95,6 @@ class QualificationTrainer(models.Model):
     is_manager = models.BooleanField(default=False)
     is_senior = models.BooleanField(default=False)
     is_trainer = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.user.display_name} - {self.qualification.name}"

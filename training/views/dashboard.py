@@ -39,7 +39,7 @@ class UserTrainingView(ProfileContextMixin, UnitHubTemplateView):
 
         for qual in qualifications:
             user_qual = user_qual_map.get(qual.id)
-            passed = user_qual.latest_passed is not None if user_qual else False
+            passed = True if user_qual else False
             first_passed = user_qual.date_awarded if user_qual else None
             latest_passed = user_qual.latest_passed if user_qual else None
 
