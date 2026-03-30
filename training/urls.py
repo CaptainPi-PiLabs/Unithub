@@ -1,6 +1,5 @@
 from django.urls import path
 
-from training.views.api_wrappers import *
 from training.views.dashboard import TrainingHomeView
 from training.views.matrix import TrainingMatrixView
 from training.views.qualification_grant import TrainingQualificationGrantView
