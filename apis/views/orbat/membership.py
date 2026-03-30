@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from apis.views.base import OrbatAPIView
 from orbat.enums import OrbatActions
-
+from orbat.models.sections import Section, SectionSlotAssignment
 
 User = get_user_model()
 
@@ -29,7 +29,7 @@ class SectionMembershipAPI(OrbatAPIView):
 
     def get(self, request, *args, **kwargs):
         section = self._object
-        members = SectionAssignment.objects.filter(section=section, end_date__isnull=True).select_related("user")
+        members = SectionSlotAssignment.objects.filter(slot__section=section, end_date__isnull=True).select_related("user")
         data = [
             {"id": m.user.id, "name": m.user.get_ranked_name(), "joined": m.start_date}
             for m in members
@@ -45,13 +45,13 @@ class SectionMembershipAPI(OrbatAPIView):
         created = []
         for uid in user_ids:
             user = get_object_or_404(User, pk=uid)
-            if SectionAssignment.objects.filter(
-                    section=section,
+            if SectionSlotAssignment.objects.filter(
+                    slot__section=section,
                     user=user,
                     end_date__isnull=True
             ).exists():
                 continue
-            SectionAssignment.objects.create(section=section, user=user)
+            SectionSlotAssignment.objects.create(slot__section=section, user=user)
             created.append(uid)
 
         return Response({"added": created}, status=status.HTTP_201_CREATED)
@@ -70,8 +70,8 @@ class SectionMembershipAPI(OrbatAPIView):
                 section.leader = None
                 section.save(update_fields=["leader"])
 
-            assignment = SectionAssignment.objects.filter(
-                section=section,
+            assignment = SectionSlotAssignment.objects.filter(
+                slot__section=section,
                 user_id=uid,
                 end_date__isnull=True
             ).first()
@@ -102,8 +102,8 @@ class SectionLeaveAPI(OrbatAPIView):
         if not user:
             raise NotAuthenticated()
 
-        assignment = SectionAssignment.objects.filter(
-            section=section,
+        assignment = SectionSlotAssignment.objects.filter(
+            slot__section=section,
             user=user,
             end_date__isnull=True
         ).first()
