@@ -1,4 +1,7 @@
+import re
+
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from orbat.models.unit import UnitApplication
@@ -10,7 +13,7 @@ class ExternalAccount(models.Model):
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="%(class)s_account",
     )
     external_id = models.CharField(max_length=64, unique=True)
@@ -21,10 +24,25 @@ class ExternalAccount(models.Model):
         abstract = True
 
 class DiscordAccount(ExternalAccount):
-    provider = models.CharField(max_length=20, default="discord")
+    provider = models.CharField(max_length=20, default="discord", editable=False)
 
     def __str__(self):
         return f"Discord - {self.username}"
+
+    @staticmethod
+    def is_valid_discord_id(value: str) -> bool:
+        if not value:
+            return False
+        return bool(re.fullmatch(r"\d{17,19}", value))
+
+    @classmethod
+    def validate_discord_id(cls, value: str):
+        if not cls.is_valid_discord_id(value):
+            raise ValidationError(f"Discord ID must be 17-19 digits")
+
+    def clean(self):
+        super().clean()
+        DiscordAccount.validate_discord_id(self.external_id)
 
     @property
     def can_create_application(self):
