@@ -6,7 +6,9 @@ from timeline.models import TimelineTypes
 def _build_event_message(event, section_meta):
 
     if event.event_type == TimelineTypes.SECTION_JOINED:
-        message = f"Joined {section_meta['name']} as {event.snapshot_name}"
+        message = f"Joined {section_meta['name']}"
+        if event.snapshot_name:
+            message = message + f" as {event.snapshot_name}"
 
     elif event.event_type == TimelineTypes.SECTION_LEFT:
         message = f"Left {section_meta['name']}"

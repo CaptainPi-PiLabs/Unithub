@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from orbat.models.sections import SectionSlotAssignment
 from timeline.events import TimelineEvent
 from timeline.models import TimelineTypes
 
@@ -62,15 +65,18 @@ def build_assignment_events(qs, scope):
             )
 
         if assignment.end_date and scope.resolve(assignment.end_date, user):
-            events.append(
-                TimelineEvent(
-                    event_type=TimelineTypes.SECTION_LEFT,
-                    timestamp=assignment.end_date,
-                    user=user,
-                    section=assignment.slot.section,
-                    source=assignment.slot,
+            # TODO Use prefetched QS. Currently very unoptimised. Can use the current assignment queryset but a check will need to be done for the next day from the DB if assignment end_date matches scope end_date as the next day won't be included
+            tomorrow = assignment.end_date + timedelta(days=1)
+            if not SectionSlotAssignment.objects.filter(user=assignment.user, slot__section=assignment.slot.section, start_date=tomorrow).exists():
+                events.append(
+                    TimelineEvent(
+                        event_type=TimelineTypes.SECTION_LEFT,
+                        timestamp=assignment.end_date,
+                        user=user,
+                        section=assignment.slot.section,
+                        source=assignment.slot,
+                    )
                 )
-            )
 
     return events
 

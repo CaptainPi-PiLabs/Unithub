@@ -92,15 +92,3 @@ def render_training_timeline(context, user_qs=None, section=None):
     context.update(get_active_context(context))
     context["entries"] = group_timeline_entries(entries)
     return context
-
-@register.inclusion_tag("timeline/timeline_list.html")
-def render_timeline(user_qs=None, section=None, start_date=None, end_date=None):
-    User = get_user_model()
-    if user_qs is None:
-        user_qs = User.objects.all()
-    elif isinstance(user_qs, User):
-        user_qs = User.objects.filter(pk=user_qs.pk)
-    elif isinstance(user_qs, list):
-        user_qs = User.objects.filter(pk__in=[u.pk for u in user_qs])
-    entries = get_timeline_entries(user_qs, section, start_date, end_date)
-    return {"entries": group_timeline_entries(entries)}

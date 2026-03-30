@@ -151,19 +151,6 @@ def get_assignment_timeline(user=None, section=None, start_date=None, end_date=N
     assignment_stream = assignment_history_stream(qs, scope)
     return list(assignment_stream)
 
-def training_history_steam(qs, scope):
-    qs = qs.order_by("-date_awarded")
-    for user_qual in qs:
-        if scope.resolve(user_qual.date_awarded, user_qual.user):
-            yield TimelineEvent(
-                event_type=TimelineTypes.TRAINING_COMPLETED,
-                timestamp=user_qual.date_awarded,
-                user=user_qual.user,
-                section=user_qual.section,
-                snapshot_name=user_qual.qualification.name,
-                source=user_qual.qualification,
-            )
-
 def get_training_timeline(user=None, section=None, start_date=None, end_date=None, qualification=None):
     scope = ScopeResolver(user, section, start_date, end_date)
 
@@ -188,7 +175,7 @@ def get_training_timeline(user=None, section=None, start_date=None, end_date=Non
 def get_orbat_timeline(user=None, section=None, start_date=None, end_date=None):
     scope = ScopeResolver(user, section, start_date, end_date)
 
-    qs = SectionSlotAssignment.objects
+    qs = SectionSlotAssignment.objects.prefetch_related("slot__section")
 
     if user:
         qs = qs.filter(user=user)
