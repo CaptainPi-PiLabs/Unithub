@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import UniqueConstraint, Q
 
 from common.mixins.model_mixin import OrderedModelMixin
 from events.models import Event
@@ -9,9 +10,23 @@ class Qualification(OrderedModelMixin, models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
+    is_bct = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=["is_bct"],
+                condition=Q(is_bct=True),
+                name="only_one_bct_training",
+            )
+        ]
+
+    @classmethod
+    def get_bct(cls):
+        return cls.objects.get(is_bct=True)
 
 class QualificationCriterion(OrderedModelMixin, models.Model):
     qualification = models.ForeignKey(
