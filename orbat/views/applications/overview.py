@@ -29,16 +29,27 @@ class ORBATApplicationOverview(ORBATContextMixin, UnitHubTemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        if has_orbat_permission(self.request.user, OrbatActions.MANAGE_UNIT_APPLICATIONS):
-            context['unit_application_perms'] = True
-            context['unit_application_can_manage'] = True
+        context["unit_application_can_manage"] = has_orbat_permission(
+            self.request.user,
+            OrbatActions.MANAGE_UNIT_APPLICATIONS,
+        )
 
-        if has_orbat_permission(self.request.user, OrbatActions.CREATE_UNIT_APPLICATIONS):
-            context['unit_application_perms'] = True
-            context['unit_application_can_create'] = True
+        context["unit_application_can_create"] = has_orbat_permission(
+            self.request.user,
+            OrbatActions.CREATE_UNIT_APPLICATIONS,
+        )
 
-        if context['unit_application_perms']:
-            context['unit_applications'] = UnitApplication.objects.filter(processed_date=None).order_by('date')
+        context["unit_application_perms"] = (
+                context["unit_application_can_manage"]
+                or context["unit_application_can_create"]
+        )
+
+        if context["unit_application_perms"]:
+            context["unit_applications"] = (
+                UnitApplication.objects
+                .filter(processed_date=None)
+                .order_by("date")
+            )
 
         managed_section = None
         slot = get_section_slot(self.request.user)
