@@ -22,9 +22,12 @@ class UnitHubContextMixin:
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        user = self.request.user
+        user = getattr(self.request, "user", None)
 
-        context["theme"] = getattr(user, "theme", "theme-light")
+        if not getattr(user, "is_authenticated", False):
+            context["theme"] = "theme-light"
+        else:
+            context["theme"] = getattr(user, "theme", "theme-light")
 
         nav_links = [
             {"name": "Dashboard", "url": "/"},
