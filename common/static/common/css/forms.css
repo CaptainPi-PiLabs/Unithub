@@ -1,0 +1,9 @@
+input,
+select,
+textarea {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem; /* top/bottom | left/right */
+}

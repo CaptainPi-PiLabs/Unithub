@@ -127,5 +127,121 @@
     </div>
 </template>
 
+<template x-if="isPanel('questionnaire')">
+    <div>
+        <h2 class="text-lg font-semibold mb-4">Questionnaire</h2>
+
+        {% if focused_application.questionnaire %}
+            <div class="space-y-4">
+
+                <div>
+                    <div class="font-semibold">Preferred Display Name</div>
+                    <div>
+                        {% if focused_application.questionnaire.preferred_display_name %}
+                            {{ focused_application.questionnaire.preferred_display_name }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="font-semibold">Owns Arma 3</div>
+                    <div>
+                        {% if focused_application.questionnaire.owns_arma3 == True %}
+                            Yes
+                        {% elif focused_application.questionnaire.owns_arma3 == False %}
+                            No
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="font-semibold">Birth Year</div>
+                    <div>
+                        {% if focused_application.questionnaire.birth_year %}
+                            {{ focused_application.questionnaire.birth_year }}
+                            (Age: {{ questionnaire_age }})
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="font-semibold">Timezone</div>
+                    <div>{{ focused_application.questionnaire.timezone|default:"-" }}</div>
+                </div>
+
+                <div>
+                    <div class="font-semibold">Used TFAR</div>
+                    <div>
+                        {% if focused_application.questionnaire.has_used_tfar == True %}
+                            Yes
+                        {% elif focused_application.questionnaire.has_used_tfar == False %}
+                            No
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="font-semibold">Used ACE</div>
+                    <div>
+                        {% if focused_application.questionnaire.has_used_ace == True %}
+                            Yes
+                        {% elif focused_application.questionnaire.has_used_ace == False %}
+                            No
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="font-semibold">Seriousness Ranking</div>
+                    <div>{{ focused_application.questionnaire.seriousness_ranking|default:"-" }}/10</div>
+                </div>
+
+                <div>
+                    <div class="font-semibold">Areas of Interest</div>
+                    <ul class="list-disc list-inside">
+                        {% for interest in focused_application.questionnaire.areas_of_interest.all %}
+                            <li>{{ interest.name }}</li>
+                        {% empty %}
+                            <li>-</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div>
+                    <div class="font-semibold">Referral Source</div>
+                    <div>{{ focused_application.questionnaire.referral_source|default:"-" }}</div>
+                </div>
+
+                <div>
+                    <div class="font-semibold">Previous Groups</div>
+                    <div class="whitespace-pre-wrap">{{ focused_application.questionnaire.previous_groups|default:"-" }}</div>
+                </div>
+
+            </div>
+        {% else %}
+            <p>No questionnaire has been submitted.</p>
+        {% endif %}
+
+        <div class="flex justify-end mt-6">
+            <button
+                type="button"
+                @click="closePanel()"
+                class="px-4 py-2 bg-base-surface-dark rounded"
+            >
+                Close
+            </button>
+        </div>
+    </div>
+</template>
 
 {% endblock %}

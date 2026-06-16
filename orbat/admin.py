@@ -11,8 +11,7 @@ from unfold.admin import TabularInline, ModelAdmin
 from common.mixins.admin_mixin import OrderedModelAdminMixin, OrderedAdminMixin
 from common.temporal.admin import BaseTemporalInline, BaseTemporalAdmin
 from orbat.models.sections import Section, Platoon, SectionSlotAssignment, SectionSlot, SectionSlotDetail
-from orbat.models.unit import UnitApplication
-
+from orbat.models.unit import UnitApplication, AreasOfInterest
 
 User = get_user_model()
 
@@ -197,6 +196,10 @@ class SectionSlotDetailAdmin(BaseTemporalAdmin):
     fields = ("slot", "name", "colour", "is_officer", "start_date", "end_date", "change_dates_link")
     readonly_fields = ("slot", "start_date", "end_date", "change_dates_link",)
     list_display = ("name", "start_date", "end_date", "change_dates_link")
+
+@admin.register(AreasOfInterest)
+class AreasOfInterest(ModelAdmin):
+    fields = ("name", "display")
 
 @admin.register(SectionSlotAssignment)
 class SectionSlotAssignmentAdmin(BaseTemporalAdmin):

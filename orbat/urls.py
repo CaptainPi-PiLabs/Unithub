@@ -1,7 +1,7 @@
 from django.urls import path
 
 from orbat.views.api_wrappers import *
-from orbat.views.applications.onboarding import UnitApplicationOnboarding
+from orbat.views.applications.onboarding import UnitApplicationOnboarding, UnitApplicationOnboardingQuestionare
 from orbat.views.applications.overview import ORBATApplicationOverview
 from orbat.views.history_views import ORBATTimelineView
 from orbat.views.overview_views import ORBATOverviewView, ORBATMemberView, ORBATSectionListView
@@ -28,4 +28,5 @@ urlpatterns = [
     path("applications/", ORBATApplicationOverview.as_view(), name="orbat_applications"),
     path("applications/onboarding/", UnitApplicationOnboarding.as_view(), name="orbat_applications_onboarding_list"),
     path("applications/onboarding/<int:pk>/", UnitApplicationOnboarding.as_view(), name="orbat_applications_onboarding"),
+    path("applications/onboarding/<int:pk>/questionare", UnitApplicationOnboardingQuestionare.as_view(), name="orbat_applications_onboarding_questionare"),
 ]

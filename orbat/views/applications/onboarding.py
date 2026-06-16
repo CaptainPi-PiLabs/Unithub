@@ -1,19 +1,19 @@
-import re
-
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.html import format_html
 
-from common.views import UnitHubTemplateView
+from common.views import UnitHubTemplateView, UnitHubUpdateView
 from orbat.enums import OrbatActions
-from orbat.models.unit import UnitApplication
+from orbat.forms import UnitApplicationQuestionnaireForm
+from orbat.models.unit import UnitApplication, UnitApplicationQuestionnaire
 from orbat.views.mixins import ORBATContextMixin
 from permissions.engine import has_orbat_permission
 from training.models import Qualification, UserQualification
-from users.models import UserStatus, CustomUserManager
+from users.models import UserStatus
 
 ACTION_MAP = {
     "save_user": {
@@ -72,6 +72,16 @@ class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
 
         if app:
             context["focused_application"] = app
+
+            questionnaire = getattr(app, "questionnaire", None)
+            if questionnaire and questionnaire.birth_year:
+                context["questionnaire_age"] = (timezone.now().year - questionnaire.birth_year)
+            else:
+                context["questionnaire_age"] = None
+            context["questionnaire_complete"] = (
+                questionnaire.is_complete() if questionnaire else False
+            )
+
             other_qs = (
                 UnitApplication.objects.filter(closed=False)
                 .order_by("date")[:10]
@@ -246,3 +256,34 @@ class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
             )
 
         return redirect("orbat_applications_onboarding_list")
+
+class UnitApplicationOnboardingQuestionare(ORBATContextMixin, UnitHubUpdateView):
+    model = UnitApplicationQuestionnaire
+    form_class = UnitApplicationQuestionnaireForm
+    template_name = "orbat/applications/onboarding_questionare.html"
+
+    def get_object(self):
+        self.application = get_object_or_404(
+            UnitApplication,
+            pk=self.kwargs["pk"],
+        )
+
+        questionnaire, _ = UnitApplicationQuestionnaire.objects.get_or_create(
+            application=self.application
+        )
+        return questionnaire
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context["application"] = self.application
+        context["player_name"] = (
+            self.application.user.display_name
+            if self.application.user
+            else "-"
+        )
+
+        return context
+
+    def get_success_url(self):
+        return self.object.application.get_absolute_url()

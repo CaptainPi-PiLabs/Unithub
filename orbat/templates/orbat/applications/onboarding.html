@@ -22,31 +22,51 @@
                         Submitted {{ focused_application.date|date:"M j, Y" }}
                     </div>
                 </div>
-            <div>
+            <div class="flex items-center justify-between">
+                <div>
+                    {% if focused_application.user %}
+                        <p>
+                            <span class="font-semibold">Display name:</span>
+                            {{ focused_application.user.display_name }}
+                        </p>
+                    {% else %}
+                        <p class="text-base-muted italic">No user created yet</p>
+                    {% endif %}
+                </div>
 
-            {% if can_manage %}
-                {% if focused_application.user %}
-                    <p><b>User:</b> {{ focused_application.user.display_name }}</p>
+                {% if can_manage %}
                     <button
                         @click="openPanel('user_edit')"
-                        class="rounded-lg bg-green-600 px-4 py-2 text-white text-sm font-medium hover:opacity-90">
-                        Edit User
-                    </button>
-                {% else %}
-                    <button
-                        @click="openPanel('user_edit')"
-                        class="rounded-lg bg-green-600 px-4 py-2 text-white text-sm font-medium hover:opacity-90">
-                        Create User
+                        class="rounded-lg bg-green-600 px-3 py-1.5 text-white text-sm font-medium">
+                        {% if focused_application.user %}
+                            Edit User
+                        {% else %}
+                            Create User
+                        {% endif %}
                     </button>
                 {% endif %}
-            {% else %}
-                {% if focused_application.user %}
-                    <p><b>User:</b> {{ focused_application.user.display_name }}</p>
-                {% else %}
-                    <p><i>No user created yet</i></p>
-                {% endif %}
-            {% endif %}
             </div>
+
+            <div class="border-t border-base-border pt-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-semibold">Questionnaire</h3>
+
+                    <div class="flex gap-2">
+                        <button
+                            @click="openPanel('questionnaire')"
+                            class="rounded-lg bg-base-accent px-3 py-1.5 text-sm font-medium">
+                            View
+                        </button>
+
+                        <a
+                            href="{% url 'orbat_applications_onboarding_questionare' focused_application.pk %}"
+                            class="rounded-lg bg-green-600 px-3 py-1.5 text-white text-sm font-medium">
+                            Edit
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <div>
                 <h3 class="font-semibold">Contact History</h3>
                 <p class="text-sm text-base-muted">
@@ -58,23 +78,33 @@
                 </p>
             </div>
 
-            <div class="flex gap-3 mt-6">
-
-                {% if can_deny %}
-                <button
+            <div class="border-t border-base-border pt-4 mt-4">
+                <div class="flex justify-end gap-3">
+                    {% if can_deny %}
+                    <button
                         @click="openPanel('deny')"
                         class="rounded-lg bg-red-600 px-4 py-2 text-base-text text-sm font-medium hover:opacity-90">
-                    Deny Application
-                </button>
-                {% endif %}
-                {% if can_approve %}
-                <button
-                        @click="openPanel('approve')"
-                        class="rounded-lg bg-green-600 px-4 py-2 text-base-text text-sm font-medium hover:opacity-90">
-                    Approve / Passed
-                </button>
-                {% endif %}
+                        Deny Application
+                    </button>
+                    {% endif %}
 
+                    {% if can_approve %}
+                    <button
+                        @click="openPanel('approve')"
+                        class="rounded-lg px-4 py-2 text-base-text text-sm font-medium transition
+                               {% if questionnaire_complete %}
+                                   bg-green-600 hover:opacity-90
+                               {% else %}
+                                   bg-gray-500 opacity-60 cursor-not-allowed
+                               {% endif %}"
+                        {% if not questionnaire_complete %}
+                            disabled
+                        {% endif %}
+                    >
+                        Approve / Passed
+                    </button>
+                    {% endif %}
+                </div>
             </div>
         </div>
         {% endif %}

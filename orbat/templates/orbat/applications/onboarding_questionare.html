@@ -1,0 +1,95 @@
+{% extends "common/base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-4">
+        <h2 class="text-lg font-semibold">
+            {{ player_name }}
+        </h2>
+    </div>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        {% for field in form %}
+            <div>
+                <label
+                    for="{{ field.id_for_label }}"
+                    class="block text-sm font-medium mb-2"
+                >
+                    {{ field.label }}
+                    {% if field.name in form.OPTIONAL_FIELDS %}
+                        <span class="text-gray-500 font-normal">- Optional</span>
+                    {% endif %}
+                </label>
+
+                {% if field.name == "seriousness_ranking" %}
+                    <div x-data="{ value: {{ field.value|default:5 }} }">
+                        <input
+                            type="range"
+                            name="{{ field.html_name }}"
+                            id="{{ field.id_for_label }}"
+                            min="1"
+                            max="10"
+                            step="1"
+                            value="{{ field.value|default:5 }}"
+                            x-model="value"
+                            class="w-full"
+                        >
+
+                        <div class="flex justify-between text-sm mt-1">
+                            <span>Casual</span>
+                            <span><strong x-text="value"></strong>/10</span>
+                            <span>MilSim</span>
+                        </div>
+                    </div>
+                {% else %}
+                    {{ field }}
+                {% endif %}
+
+                {% if field.help_text %}
+                    <p class="text-sm text-gray-500 mt-1">
+                        {{ field.help_text }}
+                    </p>
+                {% endif %}
+
+                {% for error in field.errors %}
+                    <p class="text-sm text-red-600 mt-1">
+                        {{ error }}
+                    </p>
+                {% endfor %}
+            </div>
+        {% endfor %}
+
+        <div class="pt-4">
+            <button
+                type="submit"
+                class="px-4 py-2 rounded bg-blue-600 text-white"
+            >
+                Submit
+            </button>
+            <a
+                href="{% url 'orbat_applications_onboarding' pk=view.kwargs.pk %}"
+                class="px-4 py-2 rounded border border-base-border"
+            >
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const timezoneSelect = document.querySelector('.searchable-select');
+
+    if (timezoneSelect) {
+        new TomSelect(timezoneSelect, {
+            create: false,
+            maxOptions: 500,
+        });
+    }
+});
+</script>
+{% endblock %}
