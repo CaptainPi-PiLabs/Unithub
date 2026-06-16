@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Q
+from django.utils import timezone
 
 from common.views import UnitHubTemplateView
 from orbat.models.sections import Section, SectionSlotAssignment
@@ -28,6 +30,7 @@ class TrainingMatrixView(TrainingContextMixin, UnitHubTemplateView):
             {
                 "id": str(user.id),
                 "display_name": user.display_name,
+                "membership": user.get_current_membership_display(),
                 "qualifications": user_qual_map.get(str(user.id), []),
             }
             for user in base_users
@@ -42,15 +45,25 @@ class TrainingMatrixView(TrainingContextMixin, UnitHubTemplateView):
         """
         Returns (QuerySet[User], current_section_id)
         """
+        today = timezone.now().date()
+
+        active_membership_filter = (
+            Q(unitmembership__isnull=False) &
+            (
+                Q(unitmembership__end_date__isnull=True) |
+                Q(unitmembership__end_date__gte=today)
+            )
+        )
+
         User = get_user_model()
         if not section_filter:
-            return User.objects.filter(is_active=True), None
+            return User.objects.filter(active_membership_filter), None
 
         if section_filter == "unassigned":
             assigned_user_ids = SectionSlotAssignment.objects.filter(
                 end_date__isnull=True
             ).values_list("user_id", flat=True)
-            return User.objects.filter(is_active=True).exclude(id__in=assigned_user_ids), "unassigned"
+            return User.objects.filter(active_membership_filter).exclude(id__in=assigned_user_ids), "unassigned"
 
         # specific section
         assigned_user_ids = SectionSlotAssignment.objects.filter(

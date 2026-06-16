@@ -9,6 +9,7 @@
         {
           id: '{{ user.id }}',
           display_name: '{{ user.display_name }}',
+          membership: '{{ user.membership }}',
           qualifications: {{ user.qualifications|safe }}
         },
       {% endfor %}
@@ -67,6 +68,11 @@
               @click="sort('player')">
             Player <span x-text="sortColumn === 'player' ? (sortAsc ? '▲' : '▼') : ''"></span>
           </th>
+          <th class="border p-2 cursor-pointer bg-base-surface text-base-text z-30"
+              @click="sort('membership')">
+            Membership
+            <span x-text="sortColumn === 'membership' ? (sortAsc ? '▲' : '▼') : ''"></span>
+          </th>
           <template x-for="qual in qualifications" :key="qual.id">
             <th class="border p-2 text-center cursor-pointer bg-base-surface text-base-text z-20"
                 x-show="selectedQualifications.includes(qual.id)"
@@ -84,6 +90,9 @@
             <!-- Sticky Player cell -->
             <td class="border p-2 whitespace-nowrap sticky left-0 bg-base-bg text-base-text z-20">
               <a :href="`/profile/${user.id}/training/`" target="_blank" class="hover:underline" x-text="user.display_name"></a>
+            </td>
+            <td class="border p-2 whitespace-nowrap text-base-text">
+              <span x-text="user.membership"></span>
             </td>
             <template x-for="qual in qualifications" :key="qual.id">
               <td class="border p-2 text-center text-base-text" x-show="selectedQualifications.includes(qual.id)">
@@ -128,15 +137,25 @@
               return this.sortAsc
                 ? a.display_name.localeCompare(b.display_name)
                 : b.display_name.localeCompare(a.display_name);
-            } else {
-              const qualId = this.sortColumn;
-              const aTick = a.qualifications.includes(qualId) ? 1 : 0;
-              const bTick = b.qualifications.includes(qualId) ? 1 : 0;
-              if (bTick !== aTick) return this.sortAsc ? bTick - aTick : aTick - bTick;
-              return this.sortAsc
-                ? a.display_name.localeCompare(b.display_name)
-                : b.display_name.localeCompare(a.display_name);
             }
+
+            if (this.sortColumn === 'membership') {
+              return this.sortAsc
+                ? a.membership.localeCompare(b.membership)
+                : b.membership.localeCompare(a.membership);
+            }
+
+            const qualId = this.sortColumn;
+            const aTick = a.qualifications.includes(qualId) ? 1 : 0;
+            const bTick = b.qualifications.includes(qualId) ? 1 : 0;
+
+            if (bTick !== aTick) {
+              return this.sortAsc ? bTick - aTick : aTick - bTick;
+            }
+
+            return this.sortAsc
+              ? a.display_name.localeCompare(b.display_name)
+              : b.display_name.localeCompare(a.display_name);
           });
         }
       }
