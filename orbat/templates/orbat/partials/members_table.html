@@ -9,6 +9,7 @@
                 <p>-</p>
             {% endif %}
         </td>
+        <td class="px-4 p-2">{{ member.get_current_membership_display }}</td>
         <td class="px-4 p-2">{{ member.get_status_display }}</td>
     </tr>
 {% empty %}

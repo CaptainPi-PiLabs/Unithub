@@ -132,6 +132,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.display_name
 
     def get_current_membership_display(self):
+        if self.status == UserStatus.APPLICANT:
+            return "Applicant"
+        if self.status == UserStatus.RETIRED:
+            return "Retired"
+
         membership = UnitMembership.get_current_for_user(self)
         if not membership:
             return "-"

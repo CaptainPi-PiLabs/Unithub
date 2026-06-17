@@ -108,17 +108,4 @@
 </div>
 {% endif %}
 
-<!-- Inactive / Retired -->
-{% if inactive_users %}
-<div class="mb-4">
-    <h2 class="font-semibold mb-4 text-base-text">Inactive / Retired</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
-        {% for user in inactive_users %}
-            <div class="p-4 bg-base-surface dark:bg-gray-800 shadow rounded border border-base-border text-base-text">
-                {{ user.display_name }}
-            </div>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
 {% endblock %}

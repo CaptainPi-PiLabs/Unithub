@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from django.db.models import Prefetch, OuterRef, Q, Subquery
+from django.db.models import Prefetch, OuterRef, Q, Subquery, Exists
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -10,7 +10,7 @@ from orbat.helpers import get_section_slot_snapshots
 from orbat.models.sections import SectionSlotAssignment, Section, Platoon
 from orbat.views.mixins import ORBATContextMixin
 from permissions.engine import has_orbat_permission
-from users.models import CustomUser, UserStatus
+from users.models import CustomUser, UserStatus, UnitMembership, MembershipPromotions, MembershipRanks
 
 
 class ORBATOverviewView(ORBATContextMixin, UnitHubTemplateView):
@@ -51,14 +51,12 @@ class ORBATOverviewView(ORBATContextMixin, UnitHubTemplateView):
 
         active_deltas = remaining_users.filter(status=UserStatus.ACTIVE)
         delta_reserves = remaining_users.filter(status=UserStatus.RESERVES)
-        inactive_users = remaining_users.exclude(status__in=[UserStatus.ACTIVE, UserStatus.RESERVES])
 
         context.update({
             'platoon_groups': platoons,
             'section_groups': section_groups,
             'active_deltas': active_deltas,
             'delta_reserves': delta_reserves,
-            'inactive_users': inactive_users,
         })
 
         context["colour_badges"] = {
@@ -157,9 +155,48 @@ class ORBATMemberView(ORBATContextMixin, UnitHubListView):
             )[:1]
         )
 
-        qs = CustomUser.objects.annotate(
+        current_membership = UnitMembership.objects.filter(
+            user=OuterRef("pk"),
+            start_date__lte=today,
+        ).filter(
+            Q(end_date__isnull=True) | Q(end_date__gte=today)
+        )
+
+        current_membership_start = (
+            UnitMembership.objects
+            .filter(
+                user=OuterRef("pk"),
+                start_date__lte=today,
+            )
+            .filter(
+                Q(end_date__isnull=True) | Q(end_date__gte=today)
+            )
+            .order_by("-start_date")
+            .values("start_date")[:1]
+        )
+
+        current_membership_rank = (
+            MembershipPromotions.objects
+            .filter(
+                membership__user=OuterRef("pk"),
+                membership__start_date__lte=today,
+            )
+            .filter(
+                Q(membership__end_date__isnull=True) |
+                Q(membership__end_date__gte=today)
+            )
+            .order_by("-date_awarded")
+            .values("rank")[:1]
+        )
+
+        qs = CustomUser.objects.exclude(
+            status=UserStatus.APPLICANT
+        ).annotate(
             section_name=Subquery(current_section.values("slot__section__name")),
             section_slug=Subquery(current_section.values("slot__section__slug")),
+            has_current_membership=Exists(current_membership),
+            current_membership_rank=Subquery(current_membership_rank),
+            current_membership_start=Subquery(current_membership_start),
         )
 
         search = self.request.GET.get("search")
@@ -172,28 +209,37 @@ class ORBATMemberView(ORBATContextMixin, UnitHubListView):
 
         # ---- FILTERING ----
         if status_filter:
-            if status_filter == "inactive":
-                qs = qs.filter(is_active=False)
             if status_filter == "retired":
                 qs = qs.filter(status=UserStatus.RETIRED)
-            elif status_filter == "prospective":
-                qs = qs.filter(status=UserStatus.APPLICANT)
-            elif status_filter == "active_delta":
-                qs = qs.filter(status="active", section_name__isnull=True)
-            elif status_filter == "section_member":
-                qs = qs.filter(section_name__isnull=False)
-            elif status_filter == "delta_reserve":
-                qs = qs.filter(status=UserStatus.RESERVES)
-            elif status_filter == "loa":
-                qs = qs.filter(status=UserStatus.LOA)
+            else:
+                qs = qs.filter(has_current_membership=True)
+                if status_filter == "prospective":
+                    qs = qs.filter(current_membership_rank__isnull=True,status=UserStatus.ACTIVE)
+                elif status_filter == "junior":
+                    qs = qs.filter(current_membership_rank=MembershipRanks.JUNIOR_OPERATOR)
+                elif status_filter == "operator":
+                    qs = qs.filter(current_membership_rank=MembershipRanks.OPERATOR)
+                elif status_filter == "veteran":
+                    qs = qs.filter(current_membership_rank=MembershipRanks.VETERAN)
+                elif status_filter == "active_delta":
+                    qs = qs.filter(status=UserStatus.ACTIVE, section_name__isnull=True)
+                elif status_filter == "section_member":
+                    qs = qs.filter(section_name__isnull=False)
+                elif status_filter == "delta_reserve":
+                    qs = qs.filter(status=UserStatus.RESERVES)
+                elif status_filter == "loa":
+                    qs = qs.filter(status=UserStatus.LOA)
         else:
-            qs = qs.filter(is_active=True)
+            qs = qs.filter(has_current_membership=True)
+
+        print(qs)
 
         # ---- SORTING ----
         order_map = {
             "rank": "rank",
             "name": "display_name",
             "section": "section_name",
+            "membership": "current_membership_start",
             "status": "status",
         }
 
