@@ -37,7 +37,7 @@ class TrainingMatrixView(TrainingContextMixin, UnitHubTemplateView):
         ]
 
         context["sections"] = Section.objects.all().order_by("name")
-        context["qualifications"] = Qualification.objects.filter(is_active=True).order_by("order")
+        context["qualifications"] = Qualification.objects.filter(is_active=True,show_in_matrix=True).order_by("order")
 
         return context
 
