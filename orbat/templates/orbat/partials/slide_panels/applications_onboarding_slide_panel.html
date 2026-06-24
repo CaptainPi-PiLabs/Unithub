@@ -244,4 +244,62 @@
     </div>
 </template>
 
+<template x-if="isPanel('create_event')">
+    <div>
+        <h2 class="text-lg font-semibold mb-4">
+            Create BCT Event
+        </h2>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <input type="hidden" name="action" value="create_event">
+
+            <input
+                type="hidden"
+                name="selected_applications"
+                :value="selectedApplications.join(',')">
+
+            <div class="mb-4">
+                <label class="block font-semibold mb-1">
+                    Date
+                </label>
+
+                <input
+                    type="date"
+                    name="event_date"
+                    class="w-full p-2 border rounded border-base-border bg-base-surface text-base-text"
+                    required>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-semibold mb-1">
+                    Start Time
+                </label>
+
+                <input
+                    type="time"
+                    name="start_time"
+                    class="w-full p-2 border rounded border-base-border bg-base-surface text-base-text"
+                    required>
+            </div>
+
+            <div class="flex justify-end space-x-2">
+                <button
+                    type="button"
+                    @click="closePanel()"
+                    class="px-4 py-2 bg-base-surface-dark rounded">
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    class="px-4 py-2 bg-green-600 text-white rounded">
+                    Create Event
+                </button>
+            </div>
+        </form>
+    </div>
+</template>
+
 {% endblock %}

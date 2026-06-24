@@ -2,6 +2,7 @@ from django.db import models
 
 from common.mixins.model_mixin import OrderedModelMixin
 from orbat.models.sections import Section
+from training.models import Qualification
 
 
 class Campaign(models.Model):
@@ -22,13 +23,21 @@ class Event(models.Model):
         ('OT', 'Other'),
     ]
 
+    STATUS_CHOICES = [
+        ("SCHEDULED", "Scheduled"),
+        ("COMPLETED", "Completed"),
+        ("CANCELLED", "Cancelled"),
+    ]
+
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     date = models.DateField()
     campaign = models.ForeignKey(Campaign, on_delete=models.SET_NULL, null=True, blank=True, related_name='events')
+    qualification = models.ForeignKey(Qualification, on_delete=models.SET_NULL, null=True, blank=True, related_name='events')
     start_time = models.TimeField()
     end_time = models.TimeField()
     type = models.CharField(max_length=2, choices=EVENT_TYPE_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="SCHEDULED")
 
     class Meta:
         ordering = ["-date", "start_time"]
@@ -38,9 +47,21 @@ class Event(models.Model):
 
     @property
     def organizers(self):
-        return self.roles.filter(role='Organizer')
+        return self.roles.filter(role='ORGANIZER')
+
+    @property
+    def instructor_assignments(self):
+        return self.assignments.filter(event_group__name=EventGroup.INSTRUCTOR)
+
+    @property
+    def trainee_assignments(self):
+        return self.assignments.filter(event_group__name=EventGroup.TRAINEES)
 
 class EventGroup(models.Model):
+    INSTRUCTOR = "Instructor"
+    HELPERS = "Helpers"
+    TRAINEES = "Trainees"
+
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="groups")
     orbat_section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, related_name="event_sections")
     name = models.CharField(max_length=50)  # "Alpha", "Bravo", etc.
@@ -81,7 +102,13 @@ class EventAssignment(OrderedModelMixin, models.Model):
     # class Meta:
         # unique_together = ("event_group", "user")
         # ordering = ['group', 'order']
-
+"""
+class EventAttendance(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="attendances")
+    user = models.ForeignKey("users.CustomUser", on_delete=models.CASCADE)
+    joined_at = models.DateTimeField(null=True, blank=True)
+    last_seen = models.DateTimeField(null=True, blank=True)
+"""
 class EventRole(models.Model):
     ROLE_CHOICES = [
         ('ORGANIZER', 'Organizer'),

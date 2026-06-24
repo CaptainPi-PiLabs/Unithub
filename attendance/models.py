@@ -10,7 +10,6 @@ class Attendance(models.Model):
 
     first_join = models.DateTimeField(null=True, blank=True)
     last_seen = models.DateTimeField(null=True, blank=True)
-    # Could also add a flag if they left early or disconnected
     manual = models.BooleanField(default=False)
     left_early = models.BooleanField(default=False)
 

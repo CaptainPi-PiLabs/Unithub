@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block content %}
-<div x-data="onboardingPage()">
+<div x-data="onboardingPage()" class="space-y-6">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {% if focused_application %}
         <!-- Focused Application -->
@@ -48,34 +48,89 @@
             </div>
 
             <div class="border-t border-base-border pt-4">
-                <div class="flex items-center justify-between mb-2">
-                    <h3 class="font-semibold">Questionnaire</h3>
+    <div class="flex items-start justify-between mb-2">
 
-                    <div class="flex gap-2">
-                        <button
-                            @click="openPanel('questionnaire')"
-                            class="rounded-lg bg-base-accent px-3 py-1.5 text-sm font-medium">
-                            View
-                        </button>
+        <div>
+            <h3 class="font-semibold">Questionnaire</h3>
 
-                        <a
-                            href="{% url 'orbat_applications_onboarding_questionare' focused_application.pk %}"
-                            class="rounded-lg bg-green-600 px-3 py-1.5 text-white text-sm font-medium">
-                            Edit
-                        </a>
-                    </div>
+            {% if questionnaire_complete %}
+                <div class="text-xs font-medium uppercase tracking-wide text-green-500">
+                    Completed
                 </div>
-            </div>
+            {% else %}
+                <div class="text-xs font-medium uppercase tracking-wide text-yellow-500">
+                    Pending
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="flex gap-2">
+            <button
+                @click="openPanel('questionnaire')"
+                class="rounded-lg bg-base-accent px-3 py-1.5 text-sm font-medium">
+                View
+            </button>
+
+            <a
+                href="{% url 'orbat_applications_onboarding_questionare' focused_application.pk %}"
+                class="rounded-lg bg-green-600 px-3 py-1.5 text-white text-sm font-medium">
+                Edit
+            </a>
+        </div>
+
+    </div>
+</div>
 
             <div>
                 <h3 class="font-semibold">Contact History</h3>
                 <p class="text-sm text-base-muted">
                     {{ focused_application.reached_out }}
                 </p>
-                <h3 class="font-semibold">Planned Event</h3>
-                <p class="text-sm text-base-muted">
-                    {{ focused_application.event|default:"No event planned" }}
-                </p>
+            </div>
+
+            <div class="border-t border-base-border pt-4">
+                <h3 class="font-semibold mb-2">BCT</h3>
+
+                {% if passed_bct %}
+                    <span class="text-green-600">Passed BCT</span>
+                {% else %}
+                    {% if upcoming_events %}
+                        <form method="post" class="flex gap-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="assign_event">
+
+                            <select
+                                name="event_id"
+                                class="flex-1 rounded-lg border border-base-border bg-base-surface px-3 py-2">
+
+                                <option value="">
+                                    -- No BCT Scheduled --
+                                </option>
+
+                                {% for event in upcoming_events %}
+                                    <option
+                                        value="{{ event.id }}"
+                                        {% if planned_bct_event and planned_bct_event.event_id == event.id %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ event.date|date:"D j M" }}
+                                        {{ event.start_time|time:"H:i" }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <button
+                                type="submit"
+                                class="rounded-lg bg-base-accent px-4 py-2 text-sm font-medium">
+                                Save
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="text-sm text-base-muted">
+                            No upcoming BCTs available.
+                        </div>
+                    {% endif %}
+                {% endif %}
             </div>
 
             <div class="border-t border-base-border pt-4 mt-4">
@@ -110,41 +165,115 @@
         {% endif %}
     </div>
 
-  <!-- All Applications -->
-  <div class="rounded-2xl bg-base-surface p-6 shadow-md border border-base-border">
-    <h2 class="text-xl font-semibold mb-4">All Pending Applications</h2>
-    <form method="post" action="">
-      {% csrf_token %}
-      <div class="space-y-3">
-        {% for app in other_applications %}
-          <label class="flex items-center justify-between rounded-lg border border-base-border p-3">
-            <div class="flex items-center gap-2">
-              <input type="checkbox" name="selected_apps" value="{{ app.id }}"
-                     class="h-4 w-4 rounded border-base-border text-base-accent focus:ring-base-accent">
-              <div>
-                <div class="font-medium text-base-text">{{ app.external_account.username }}</div>
-                <div class="text-sm text-base-muted">{{ app.get_status_display }}</div>
-              </div>
+    <!-- All Applications -->
+    <div class="rounded-2xl bg-base-surface p-6 shadow-md border border-base-border">
+        <h2 class="text-xl font-semibold mb-4">All Pending Applications</h2>
+        <form method="post" action="">
+            {% csrf_token %}
+            <div class="space-y-3">
+                {% for app in other_applications %}
+                    <label class="flex items-center justify-between rounded-lg border border-base-border p-3">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" name="selected_apps" value="{{ app.id }}"
+                        class="h-4 w-4 rounded border-base-border text-base-accent focus:ring-base-accent">
+                        <div>
+                            <div class="font-medium text-base-text">{{ app.external_account.username }}</div>
+                            <div class="text-sm text-base-muted">{{ app.get_status_display }}</div>
+                        </div>
+                    </div>
+                    <a href="{% url 'orbat_applications_onboarding' app.id %}"
+                    class="px-3 py-1.5 text-sm bg-base-accent text-base-text rounded hover:bg-base-accent/80">
+                    Focus
+                    </a>
+                    </label>
+                {% empty %}
+                    <div class="text-sm text-base-muted">No applications</div>
+                {% endfor %}
             </div>
-            <a href="{% url 'orbat_applications_onboarding' app.id %}"
-               class="px-3 py-1.5 text-sm bg-base-accent text-base-text rounded hover:bg-base-accent/80">
-                Focus
-            </a>
-          </label>
-        {% empty %}
-          <div class="text-sm text-base-muted">No applications</div>
-        {% endfor %}
-      </div>
 
-      <div class="mt-4">
-        <button type="submit"
-          class="w-full rounded-lg bg-base-accent px-4 py-2 text-base-text text-sm font-medium hover:opacity-90">
-          Bulk Action
-        </button>
-      </div>
-    </form>
-  </div>
+            <div class="mt-4 space-y-2">
+                <button
+                    type="submit"
+                    class="w-full rounded-lg bg-base-accent px-4 py-2 text-sm font-medium">
+                    Bulk Action
+                </button>
+
+                <button
+                    type="button"
+                    @click="openPanel('create_event')"
+                    class="w-full rounded-lg bg-green-600 px-4 py-2 text-white text-sm font-medium">
+                    Create Event
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
+    <div class="rounded-2xl bg-base-surface p-6 shadow-md border border-base-border">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold">
+                Upcoming BCT Events
+            </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {% for event in upcoming_events %}
+
+        <a href="{% url 'event_detail' event.pk %}"
+           class="block rounded-xl border border-base-border p-5 hover:border-base-accent transition">
+
+            <!-- Date / Time -->
+            <h3 class="font-semibold text-lg">
+                {{ event.date|date:"D j M Y" }}
+            </h3>
+
+            <p class="text-sm text-base-muted mb-4">
+                {{ event.start_time|time:"g:i A" }} - {{ event.end_time|time:"g:i A" }}
+            </p>
+
+            <div class="mb-4">
+                <div class="text-xs uppercase text-base-muted mb-1">Instructors</div>
+
+                <div class="space-y-1">
+                    {% for assignment in event.instructor_assignments %}
+                        <div class="rounded-lg bg-base-bg px-3 py-1 text-sm">
+                            {{ assignment.user.display_name }}
+                        </div>
+                    {% empty %}
+                        <div class="text-sm text-base-muted italic">
+                            No instructors
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div>
+                <div class="text-xs uppercase text-base-muted mb-1">Applicants</div>
+
+                <div class="space-y-1">
+                    {% for assignment in event.trainee_assignments %}
+                        <div class="rounded-lg bg-base-bg px-3 py-1 text-sm">
+                            {{ assignment.user }}
+                        </div>
+                    {% empty %}
+                        <div class="text-sm text-base-muted italic">
+                            No applicants assigned
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </a>
+
+        {% empty %}
+        <div class="col-span-full rounded-xl border border-dashed border-base-border p-8 text-center">
+            <p class="text-sm text-base-muted">
+                Create a BCT event to start scheduling applicants.
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+<div>
     {% include 'orbat/partials/slide_panels/applications_onboarding_slide_panel.html' %}
 </div>
 

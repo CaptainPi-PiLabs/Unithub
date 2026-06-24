@@ -1,5 +1,33 @@
 {% extends "common/base.html" %}
 
 {% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
+    {% for event in object_list %}
+
+        <a href="{% url 'event_detail' event.pk %}"
+           class="block rounded-xl border border-base-border p-5 hover:border-base-accent transition">
+
+            <h3 class="font-semibold text-lg">
+                {{ event.name }}
+            </h3>
+
+            <p class="text-sm text-base-muted">
+                {{ event.date|date:"D j M Y" }}
+                {{ event.start_time|time:"g:i A" }}
+            </p>
+
+        </a>
+
+    {% empty %}
+
+        <div class="col-span-full rounded-xl border border-dashed border-base-border p-8 text-center">
+            <p class="text-sm text-base-muted">
+                No upcoming events
+            </p>
+        </div>
+
+    {% endfor %}
+
+</div>
 {% endblock %}

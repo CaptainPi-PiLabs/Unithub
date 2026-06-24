@@ -1,0 +1,80 @@
+{% extends "common/base.html" %}
+
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+
+    <div>
+        <h1 class="text-xl font-semibold">
+            {{ event.name }}
+        </h1>
+
+        <p class="text-sm text-base-muted">
+            {{ event.date|date:"D j M Y" }}
+            {{ event.start_time|time:"g:i A" }} -
+            {{ event.end_time|time:"g:i A" }}
+        </p>
+
+        <p class="text-xs text-base-muted">
+            In {{ event.date|timeuntil }}
+        </p>
+    </div>
+
+    <div class="flex items-center gap-2">
+        <form method="post" class="m-0">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="certify_attendees">
+
+            <button type="submit"
+                    class="inline-flex items-center px-4 py-2 rounded-lg bg-green-600 text-white text-sm">
+                Certify Attendees
+            </button>
+        </form>
+
+        <a href="{{ exit_url }}"
+           class="inline-flex items-center px-4 py-2 rounded-lg bg-base-surface-dark text-sm">
+            Back
+        </a>
+    </div>
+
+</div>
+
+<div class="mt-6">
+
+    <h2 class="text-sm font-semibold mb-3 text-base-muted">
+        Groups
+    </h2>
+
+    <div class="space-y-4">
+
+        {% for group in event.groups.all %}
+
+            {% if group.assignments.all %}
+
+                <div class="rounded-xl border border-base-border p-4">
+
+                    <h3 class="font-semibold mb-3">
+                        {{ group.name }}
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+
+                        {% for assignment in group.assignments.all %}
+                            <div class="rounded-lg bg-base-bg px-3 py-2 text-sm">
+                                {{ assignment.user.display_name|default:assignment.user.username }}
+                            </div>
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+{% endblock %}

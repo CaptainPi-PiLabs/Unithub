@@ -90,14 +90,14 @@ class TrainingQualificationGrantView(TrainingContextMixin, UnitHubDetailView):
                         defaults={
                             "date_awarded": today,
                             "latest_passed": today,
-                            "awarded_by": request.user,
+                            "granted_by": request.user,
                         }
                     )
 
                     if not created:
                         obj.latest_passed = today
-                        obj.awarded_by = request.user
-                        obj.save(update_fields=["latest_passed", "awarded_by"])
+                        obj.granted_by = request.user
+                        obj.save(update_fields=["latest_passed", "granted_by"])
 
             messages.success(
                 request,

@@ -12,16 +12,25 @@ class EventListView(EventContextMixin, UnitHubListView):
     template_name = "events/events_upcoming.html"
     title = "Upcoming Events"
 
+    def get_queryset(self):
+        return (
+            Event.objects
+            .select_related("campaign", "qualification")
+            .prefetch_related(
+                "roles__user",
+                "assignments__user",
+                "groups",
+            )
+            .filter(date__gte=timezone.now().date(), status="SCHEDULED")
+            .order_by("date", "start_time")[:10]
+        )
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         context["breadcrumbs"] = [
             {"name": "Events", "url": None},
         ]
-
-        context["upcoming_events"] = (
-            Event.objects.filter(date__gte=timezone.now()).order_by("date")[:10]
-        )
 
         return context
 

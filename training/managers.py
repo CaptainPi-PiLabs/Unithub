@@ -14,7 +14,7 @@ class QualificationManager(models.Manager):
         """Prefetch criteria for all qualifications."""
         return self.prefetch_related("criteria")
 
-    def award_to_user(self, user, qualification, event=None, awarded_by=None):
+    def award_to_user(self, user, qualification, event=None, granted_by=None):
         """
         Award a qualification to a user and automatically mark all criteria completed.
         """
@@ -24,7 +24,7 @@ class QualificationManager(models.Manager):
             defaults={
                 "event": event,
                 "date_awarded": timezone.now().date(),
-                "awarded_by": awarded_by,
+                "granted_by": granted_by,
             }
         )
 
@@ -51,11 +51,11 @@ class UserQualificationManager(models.Manager):
             missing.extend(uq.qualification.criteria.filter(id__in=all_ids - completed_ids))
         return missing
 
-    def award_bulk(self, users, qualification, event=None, awarded_by=None):
+    def award_bulk(self, users, qualification, event=None, granted_by=None):
         """Award the same qualification to multiple users at once."""
         results = []
         for user in users:
-            uq = self.model.objects.award_to_user(user, qualification, event=event, awarded_by=awarded_by)
+            uq = self.model.objects.award_to_user(user, qualification, event=event, granted_by=granted_by)
             results.append(uq)
         return results
 

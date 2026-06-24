@@ -1,19 +1,24 @@
+from datetime import datetime, timedelta
+
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db.models import Q
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 
 from common.views import UnitHubTemplateView, UnitHubUpdateView
+from events.helpers import create_training_event
+from events.models import Event, EventAssignment, EventRole, EventGroup
 from orbat.enums import OrbatActions
 from orbat.forms import UnitApplicationQuestionnaireForm
 from orbat.models.unit import UnitApplication, UnitApplicationQuestionnaire
 from orbat.views.mixins import ORBATContextMixin
 from permissions.engine import has_orbat_permission
 from training.models import Qualification, UserQualification
-from users.models import UserStatus
+from users.models import UserStatus, CustomUser
 
 ACTION_MAP = {
     "save_user": {
@@ -35,6 +40,14 @@ ACTION_MAP = {
     "deny_application": {
         "perm": OrbatActions.DENY_UNIT_APPLICATIONS,
         "handler": "_deny",
+    },
+    "create_event": {
+        "perm": OrbatActions.MANAGE_UNIT_APPLICATIONS,
+        "handler": "_create_event",
+    },
+    "assign_event": {
+        "perm": OrbatActions.MANAGE_UNIT_APPLICATIONS,
+        "handler": "_assign_event",
     }
 }
 
@@ -88,11 +101,25 @@ class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
             )
 
             context["passed_bct"] = False
+            context["planned_bct_event"] = False
+
             if app.user:
                 context["passed_bct"] = UserQualification.objects.filter(
                     user=app.user,
                     qualification__is_bct=True,
                 ).exists()
+
+                context["planned_bct_event"] = (
+                    EventAssignment.objects
+                    .filter(
+                        user=app.user,
+                        event__qualification__is_bct=True,
+                        event__date__gte=timezone.now().date(),
+                    )
+                    .select_related("event")
+                    .order_by("event__date", "event__start_time")
+                    .first()
+                )
 
             context["application_json"] = {
                 "id": app.pk,
@@ -104,6 +131,23 @@ class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
         else:
             other_qs = UnitApplication.objects.filter(closed=False).order_by("date")[:10]
         context["other_applications"] = other_qs
+
+        bct = Qualification.get_bct()
+
+        upcoming_bcts = (
+            Event.objects
+            .filter(
+                date__gte=timezone.now().date(),
+                qualification=bct,
+                status="SCHEDULED",
+            ).prefetch_related(
+                "roles__user",
+                "assignments__user",
+                "groups",
+            ).order_by("date", "start_time")
+        )
+
+        context["upcoming_events"] = upcoming_bcts
 
         user = self.request.user
         context["can_manage"] = has_orbat_permission(user, OrbatActions.MANAGE_UNIT_APPLICATIONS)
@@ -196,6 +240,99 @@ class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
         display_name = user.display_name
         user.delete()
         self.add_message(f"User {display_name} deleted.", level=messages.SUCCESS)
+
+    def _create_event(self, request, *args, **kwargs):
+        bct = Qualification.get_bct()
+
+        application_ids = [
+            int(pk)
+            for pk in request.POST["selected_applications"].split(",")
+            if pk
+        ]
+        #users = CustomUser.objects.filter(
+        #    onboardingapplication__id__in=application_ids
+        #)
+        event_date = request.POST["event_date"]
+        start_time_str = request.POST["start_time"]
+
+        start_time = datetime.strptime(start_time_str, "%H:%M").time()
+
+        create_training_event(
+            qualification=bct,
+            organizer=request.user,
+            event_date=event_date,
+            start_time=start_time,
+            # attendees=users,
+        )
+
+        self.add_message(
+            f"BCT Created on {event_date}",
+            level=messages.INFO
+        )
+
+    def _assign_event(self, request, app, *args, **kwargs):
+        event_id = request.POST.get("event_id")
+        bct = Qualification.get_bct()
+
+        now = timezone.localtime()
+
+        # Remove any future BCT assignments
+        future_assignments = EventAssignment.objects.filter(
+            user=app.user,
+            event__qualification=bct,
+        ).filter(
+            Q(event__date__gt=now.date()) |
+            Q(
+                event__date=now.date(),
+                event__start_time__gte=now.time(),
+            )
+        )
+
+        if not event_id:
+            deleted, _ = future_assignments.delete()
+
+            self.add_message(
+                "Removed applicant from all upcoming BCTs.",
+                level=messages.INFO,
+            )
+            return
+
+        try:
+            event = Event.objects.get(
+                id=event_id,
+                qualification=bct,
+            )
+        except Event.DoesNotExist:
+            self.add_message(
+                "Event does not exist.",
+                level=messages.ERROR,
+            )
+            return
+
+        trainee_group = event.groups.filter(
+            name=EventGroup.TRAINEES
+        ).first()
+
+        if not trainee_group:
+            self.add_message(
+                "Training group is missing from the event.",
+                level=messages.ERROR,
+            )
+            return
+
+        future_assignments.delete()
+
+        EventAssignment.objects.create(
+            event=event,
+            user=app.user,
+            event_group=trainee_group,
+            assigned_by=request.user,
+        )
+
+        self.add_message(
+            f"Assigned to {event.name}.",
+            level=messages.SUCCESS,
+        )
 
     def _save_application(self, request, app, *args, **kwargs):
         app.teamspeak_id = request.POST.get("teamspeak_id") or None

@@ -3,7 +3,6 @@ from django.db import models
 from django.db.models import UniqueConstraint, Q
 
 from common.mixins.model_mixin import OrderedModelMixin
-from events.models import Event
 
 
 class Qualification(OrderedModelMixin, models.Model):
@@ -44,17 +43,6 @@ class QualificationCriterion(OrderedModelMixin, models.Model):
     def __str__(self):
         return f"{self.qualification.name} - {self.name}"
 
-
-class QualificationEvent(models.Model):
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="qualification_events")
-    qualification = models.ForeignKey("training.Qualification", on_delete=models.CASCADE, related_name="qualification_events")
-
-    class Meta:
-        unique_together = ("event", "qualification")
-
-    def __str__(self):
-        return f"{self.qualification.name} @ {self.event.name}"
-
 class UserQualification(models.Model):
     """
     Tracks which users have earned which qualifications
@@ -63,7 +51,7 @@ class UserQualification(models.Model):
     qualification = models.ForeignKey(Qualification, on_delete=models.CASCADE)
     date_awarded = models.DateField(null=True, blank=True)
     latest_passed = models.DateField(null=True, blank=True)
-    awarded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="qualifications_awarded")
+    granted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="qualifications_awarded")
 
     class Meta:
         unique_together = ("user", "qualification")

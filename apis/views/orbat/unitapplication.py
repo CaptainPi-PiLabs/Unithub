@@ -6,6 +6,20 @@ from external_auth.models import DiscordAccount
 from orbat.enums import OrbatActions
 from orbat.models.unit import UnitApplication
 
+from django.contrib.auth import get_user_model
+
+
+User = get_user_model()
+
+def generate_unique_username(base_username):
+    username = base_username
+    counter = 1
+
+    while User.objects.filter(username=username).exists():
+        username = f"{base_username}{counter}"
+        counter += 1
+
+    return username
 
 class UnitApplicationAPI(OrbatAPIView):
     """
@@ -43,7 +57,20 @@ class UnitApplicationAPI(OrbatAPIView):
         if not discord_account.can_create_application:
             return Response({"error": "conflict on application"}, status=400)
 
+        user = discord_account.user
+
+        if not user:
+            unique_username = generate_unique_username(username)
+
+            user = User.objects.create(
+                username=unique_username,
+            )
+
+            discord_account.user = user
+            discord_account.save(update_fields=["user"])
+
         application = UnitApplication.objects.create(
+            user=user,
             external_account=discord_account,
             status=UnitApplication.STATUS_WAITING_REPLY,
         )
