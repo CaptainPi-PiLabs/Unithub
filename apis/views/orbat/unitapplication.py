@@ -1,7 +1,9 @@
 from rest_framework import status
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
 from apis.views.base import OrbatAPIView
+from common.temporal.models import ApplicationBase
 from external_auth.models import DiscordAccount
 from orbat.enums import OrbatActions
 from orbat.models.unit import UnitApplication
@@ -23,12 +25,29 @@ def generate_unique_username(base_username):
 
 class UnitApplicationAPI(OrbatAPIView):
     """
+    GET -> Get a list of current applications
     POST -> Create a new unit application (Discord only)
     """
     object_permission_required = False
     required_permissions = {
+        "GET": [OrbatActions.VIEW_UNIT_APPLICATIONS],
         "POST": [OrbatActions.CREATE_UNIT_APPLICATIONS]
     }
+
+    def get(self, request, *args, **kwargs):
+        applications = UnitApplication.objects.filter(closed=False)
+
+        applications_data = []
+        for application in applications:
+            applications_data.append({
+                "id": application.pk,
+                "status": application.status,
+                "creation_date": application.date,
+                "discord_id": application.external_account.external_id,
+                "discord_name": application.external_account.username,
+            })
+
+        return Response(applications_data)
 
     def post(self, request, *args, **kwargs):
         data = request.data
@@ -83,3 +102,47 @@ class UnitApplicationAPI(OrbatAPIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+class UnitApplicationQuestionnaireAPI(OrbatAPIView):
+    """
+    PATCH   -> Update the details of a questionnaire
+    """
+
+    required_permissions = {
+        "PATCH": [OrbatActions.MANAGE_UNIT_APPLICATIONS],
+    }
+
+    def get_object(self):
+        return get_object_or_404(UnitApplication, pk=self.kwargs["pk"])
+
+    def patch(self, request, *args, **kwargs):
+        application = self._object
+        data = request.data
+
+        questionnaire = application.questionnaire
+
+        fields = {
+            "preferred_display_name": str,
+            "owns_arma3": bool,
+            "birth_year": int,
+            "timezone": str,
+            "has_used_tfar": bool,
+            "has_used_ace": bool,
+            "seriousness_ranking": int,
+            "referral_source": str,
+            "previous_groups": str,
+        }
+
+        for field, expected_type in fields.items():
+            if field not in data:
+                continue
+            value = data[field]
+
+            if not isinstance(value, expected_type):
+                return Response({"error": f"{field} must be a {expected_type.__name__}"}, status=400)
+            setattr(questionnaire, field, value)
+
+        questionnaire.full_clean()
+        questionnaire.save()
+
+        return Response({"success": True, "id": application.pk})

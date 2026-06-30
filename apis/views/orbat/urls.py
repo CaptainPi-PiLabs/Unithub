@@ -3,7 +3,7 @@ from django.urls import path
 from apis.views.orbat.platoon import *
 from apis.views.orbat.section import *
 from apis.views.orbat.slot import *
-from apis.views.orbat.unitapplication import UnitApplicationAPI
+from apis.views.orbat.unitapplication import *
 
 urlpatterns = [
     path("platoon/", PlatoonAPI.as_view(), name="api-orbat-platoon"),
@@ -15,4 +15,5 @@ urlpatterns = [
     path("section/<int:section_id>/slot/", SlotAPI.as_view(), name="api-orbat-section-slot"),
     path("section/<int:section_id>/slot/<int:slot_id>detail", SlotDetailAPI.as_view(), name="api-orbat-section-slot"),
     path("unitapplication/", UnitApplicationAPI.as_view(), name="api-orbat-unitapplication"),
+    path("unitapplication/questionnaire/", UnitApplicationQuestionnaireAPI.as_view(), name="api-orbat-unitapplication-questionnaire"),
 ]
