@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "dashboard",
     "events",
     "external_auth",
+    "intergrations",
     "orbat",
     "permissions",
     "timeline",
@@ -95,6 +96,8 @@ STEAM_REDIRECT_URI = env("STEAM_REDIRECT_URI", default=None)
 AUTH_ENABLED_BUILTIN = env.bool("AUTH_ENABLED_BUILTIN", default=True)
 AUTH_ENABLED_DISCORD = env.bool("AUTH_ENABLED_DISCORD", default=DISCORD_CLIENT_ID is not None)
 AUTH_ENABLED_STEAM = env.bool("AUTH_ENABLED_STEAM", default=STEAM_API_KEY is not None)
+
+REDIS_URL = env("REDIS_URL", default=None)
 
 ROOT_URLCONF = 'core.urls'
 

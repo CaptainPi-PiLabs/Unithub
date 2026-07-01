@@ -10,6 +10,8 @@ from timezone_field import TimeZoneField
 
 from common.admin_logging import log_admin_addition
 from common.temporal.models import ApplicationBase
+from intergrations.events import EventType
+from intergrations.services import publish
 from users.models import UnitMembership
 
 
@@ -87,6 +89,12 @@ class UnitApplication(ApplicationBase):
             "actioned_by",
             "processed_date",
         ])
+        publish(
+            EventType.MEMBER_APPROVED,
+            application_id=self.pk,
+            user_id=self.user.pk,
+            discord_id=self.external_account.external_id,
+        )
 
     def deny(self, actioned_by=None, reason=None):
         self.status = self.STATUS_DENIED
@@ -101,7 +109,12 @@ class UnitApplication(ApplicationBase):
             "processed_date",
             "comment",
         ])
-
+        publish(
+            EventType.MEMBER_REJECTED,
+            application_id=self.pk,
+            user_id=self.user.pk,
+            discord_id=self.external_account.external_id,
+        )
 
 class AreasOfInterest(models.Model):
     name = models.CharField(max_length=50)

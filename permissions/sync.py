@@ -1,3 +1,4 @@
+from intergrations.permissions import IntergrationActions
 from orbat.enums import OrbatActions
 from permissions.models import PermissionRule
 from training.enums import TrainingActions
@@ -5,6 +6,7 @@ from training.enums import TrainingActions
 MODULE_ENUMS = {
     "orbat": OrbatActions,
     "training": TrainingActions,
+    "intergrations": IntergrationActions
 }
 
 def sync_permission_rules():
