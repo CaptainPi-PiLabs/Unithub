@@ -11,14 +11,14 @@ from django.utils.html import format_html
 
 from common.views import UnitHubTemplateView, UnitHubUpdateView
 from events.helpers import create_training_event
-from events.models import Event, EventAssignment, EventRole, EventGroup
+from events.models import Event, EventAssignment, EventGroup
 from orbat.enums import OrbatActions
 from orbat.forms import UnitApplicationQuestionnaireForm
 from orbat.models.unit import UnitApplication, UnitApplicationQuestionnaire
 from orbat.views.mixins import ORBATContextMixin
 from permissions.engine import has_orbat_permission
 from training.models import Qualification, UserQualification
-from users.models import UserStatus, CustomUser
+from users.models import UserStatus
 
 ACTION_MAP = {
     "save_user": {
