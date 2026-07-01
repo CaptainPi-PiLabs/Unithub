@@ -98,6 +98,7 @@ AUTH_ENABLED_DISCORD = env.bool("AUTH_ENABLED_DISCORD", default=DISCORD_CLIENT_I
 AUTH_ENABLED_STEAM = env.bool("AUTH_ENABLED_STEAM", default=STEAM_API_KEY is not None)
 
 REDIS_URL = env("REDIS_URL", default=None)
+REDIS_PROTOCOL = env.int("REDIS_PROTOCOL", default=3)
 
 ROOT_URLCONF = 'core.urls'
 
