@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.core.exceptions import ValidationError
 
-from intergrations.events import EventType
-from intergrations.services import publish
+from integrations.events import EventType
+from integrations.services import publish
 
 """
 examples

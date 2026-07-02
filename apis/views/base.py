@@ -42,5 +42,5 @@ class OrbatAPIView(BaseAPIView):
 class TrainingAPIView(BaseAPIView):
     module = PermissionModule.TRAINING
 
-class IntergrationAPIView(BaseAPIView):
-    module = PermissionModule.INTERGRATIONS
+class IntegrationAPIView(BaseAPIView):
+    module = PermissionModule.INTEGRATIONS

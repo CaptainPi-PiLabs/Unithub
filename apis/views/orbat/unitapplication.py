@@ -3,7 +3,6 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
 from apis.views.base import OrbatAPIView
-from common.temporal.models import ApplicationBase
 from external_auth.models import DiscordAccount
 from orbat.enums import OrbatActions
 from orbat.models.unit import UnitApplication
@@ -71,7 +70,7 @@ class UnitApplicationAPI(OrbatAPIView):
         )
 
         if discord_account.user and discord_account.user.is_active:
-            return Response({"error": "active user already exists"}, status=400)
+            return Response({"error": "active user already exists"}, status=409)
 
         if not discord_account.can_create_application:
             return Response({"error": "conflict on application"}, status=400)

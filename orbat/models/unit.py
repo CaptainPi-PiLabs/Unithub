@@ -10,8 +10,8 @@ from timezone_field import TimeZoneField
 
 from common.admin_logging import log_admin_addition
 from common.temporal.models import ApplicationBase
-from intergrations.events import EventType
-from intergrations.services import publish
+from integrations.events import EventType
+from integrations.services import publish
 from users.models import UnitMembership
 
 

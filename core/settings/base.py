@@ -55,7 +55,7 @@ INSTALLED_APPS = [
     "dashboard",
     "events",
     "external_auth",
-    "intergrations",
+    "integrations",
     "orbat",
     "permissions",
     "timeline",

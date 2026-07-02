@@ -21,7 +21,7 @@ class PermissionModule(models.TextChoices):
     ORBAT = "orbat", "ORBAT"
     EVENTS = "events", "EVENTS"
     TRAINING = "training", "TRAINING"
-    INTERGRATIONS = "intergrations", "INTERGRATIONS"
+    INTEGRATIONS = "integrations", "INTEGRATIONS"
 
 class PermissionRule(models.Model):
     module = models.CharField(max_length=32, choices=PermissionModule.choices)

@@ -4,26 +4,26 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
-from apis.views.base import IntergrationAPIView
-from intergrations.models import IntegrationEvent
-from intergrations.permissions import IntergrationActions
+from apis.views.base import IntegrationAPIView
+from integrations.models import IntegrationEvent
+from integrations.permissions import IntegrationActions
 
 
-class IntergrationsOpenEventsView(IntergrationAPIView):
+class IntegrationsOpenEventsView(IntegrationAPIView):
     object_permission_required = False
     required_permissions = {
-        "GET": [IntergrationActions.VIEW_EVENTS]
+        "GET": [IntegrationActions.VIEW_EVENTS]
     }
 
     def get(self, request, *args, **kwargs):
         pass
 
-class IntergrationsClaimEventView(IntergrationAPIView):
+class IntegrationsClaimEventView(IntegrationAPIView):
     """
     POST -> Try to claim the event returning the event payload
     """
     required_permissions = {
-        "POST": [IntergrationActions.MANAGE_EVENTS]
+        "POST": [IntegrationActions.MANAGE_EVENTS]
     }
 
     def get_object(self):
@@ -49,12 +49,12 @@ class IntergrationsClaimEventView(IntergrationAPIView):
 
         return Response(data)
 
-class IntergrationsSuccessEventView(IntergrationAPIView):
+class IntegrationsSuccessEventView(IntegrationAPIView):
     """
     POST -> Try to claim the event returning the event payload
     """
     required_permissions = {
-        "POST": [IntergrationActions.MANAGE_EVENTS]
+        "POST": [IntegrationActions.MANAGE_EVENTS]
     }
 
     def get_object(self):
@@ -72,12 +72,12 @@ class IntergrationsSuccessEventView(IntergrationAPIView):
         event.save(update_fields=["status", "processing_started"])
         return Response({"success": True})
 
-class IntergrationsErrorEventView(IntergrationAPIView):
+class IntegrationsErrorEventView(IntegrationAPIView):
     """
     POST -> Try to claim the event returning the event payload
     """
     required_permissions = {
-        "POST": [IntergrationActions.MANAGE_EVENTS]
+        "POST": [IntegrationActions.MANAGE_EVENTS]
     }
 
     def get_object(self):

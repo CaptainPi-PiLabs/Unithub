@@ -30,7 +30,10 @@ def publish_to_redis(event):
     try:
         redis.xadd(
             STREAM_NAME,
-            {"event_id": str(event.pk)},
+            {
+                "event_id": str(event.pk),
+                "event_type": event.event_type,
+            },
         )
         event.status = IntegrationEvent.Status.PUBLISHED
         event.error = ""
