@@ -12,15 +12,15 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-def generate_unique_username(base_username):
-    username = base_username
+def generate_unique_value(model, field, base):
+    value = base
     counter = 1
 
-    while User.objects.filter(username=username).exists():
-        username = f"{base_username}{counter}"
+    while model.objects.filter(**{field: value}).exists():
+        value = f"{base}{counter}"
         counter += 1
 
-    return username
+    return value
 
 class UnitApplicationAPI(OrbatAPIView):
     """
@@ -78,10 +78,13 @@ class UnitApplicationAPI(OrbatAPIView):
         user = discord_account.user
 
         if not user:
-            unique_username = generate_unique_username(username)
+            raw_name = username.strip()
+            unique_username = generate_unique_value(User, "username", User.normalize_username(raw_name))
+            unique_display_name = generate_unique_value(User, "display_name", raw_name.title())
 
             user = User.objects.create(
                 username=unique_username,
+                display_name=unique_display_name,
             )
 
             discord_account.user = user
