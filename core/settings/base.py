@@ -124,6 +124,50 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
+LOG_FILE = os.getenv("LOG_FILE")
+
+handlers = {
+    "console": {
+        "class": "logging.StreamHandler",
+        "formatter": "standard",
+    }
+}
+
+active_handlers = ["console"]
+
+if LOG_FILE:
+    Path(LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
+
+    handlers["file"] = {
+        "class": "logging.handlers.RotatingFileHandler",
+        "filename": LOG_FILE,
+        "maxBytes": 10 * 1024 * 1024,  # 10 MB
+        "backupCount": 5,
+        "formatter": "standard",
+    }
+    active_handlers.append("file")
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        },
+    },
+    "handlers": handlers,
+    "root": {
+        "handlers": active_handlers,
+        "level": "INFO",
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": active_handlers,
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
