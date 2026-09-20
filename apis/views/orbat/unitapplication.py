@@ -4,6 +4,8 @@ from rest_framework.response import Response
 
 from apis.views.base import OrbatAPIView
 from external_auth.models import DiscordAccount
+from integrations.events import EventType
+from integrations.services import publish
 from orbat.enums import OrbatActions
 from orbat.models.unit import UnitApplication
 
@@ -146,5 +148,11 @@ class UnitApplicationQuestionnaireAPI(OrbatAPIView):
 
         questionnaire.full_clean()
         questionnaire.save()
+
+        publish(
+            EventType.QUESTIONNAIRE_SUBMITTED,
+            application_id=application.pk,
+            discord_id=application.external_account.external_id,
+        )
 
         return Response({"success": True, "id": application.pk})
