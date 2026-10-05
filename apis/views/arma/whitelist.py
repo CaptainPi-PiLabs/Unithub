@@ -20,15 +20,13 @@ class ArmaGetWhitelistAPI(ArmaAPIView):
     def get(self, request, *args, **kwargs):
         today = timezone.now().date()
 
-        active_members = UnitMembership.objects.filter(
-            start_date__lte=today,
-        ).filter(
-            Q(end_date__isnull=True) | Q(end_date__gte=today)
-        )
-
         steam_ids = list(
             SteamAccount.objects.filter(
-                user__unit_memberships__in=active_members
+                user__isnull=False,
+                user__unit_memberships__start_date__lte=today,
+            ).filter(
+                Q(user__unit_memberships__end_date__isnull=True) |
+                Q(user__unit_memberships__end_date__gte=today)
             ).values_list(
                 "external_id",
                 flat=True,
