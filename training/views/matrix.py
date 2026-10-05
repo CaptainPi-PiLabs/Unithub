@@ -48,10 +48,10 @@ class TrainingMatrixView(TrainingContextMixin, UnitHubTemplateView):
         today = timezone.now().date()
 
         active_membership_filter = (
-            Q(unitmembership__isnull=False) &
+            Q(unit_memberships__isnull=False) &
             (
-                Q(unitmembership__end_date__isnull=True) |
-                Q(unitmembership__end_date__gte=today)
+                Q(unit_memberships__end_date__isnull=True) |
+                Q(unit_memberships__end_date__gte=today)
             )
         )
 

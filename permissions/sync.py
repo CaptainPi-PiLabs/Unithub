@@ -1,9 +1,11 @@
 from integrations.permissions import IntegrationActions
 from orbat.enums import OrbatActions
 from permissions.models import PermissionRule
+from permissions.permission_modules.ArmaActions import ArmaActions
 from training.enums import TrainingActions
 
 MODULE_ENUMS = {
+    "arma": ArmaActions,
     "orbat": OrbatActions,
     "training": TrainingActions,
     "integrations": IntegrationActions

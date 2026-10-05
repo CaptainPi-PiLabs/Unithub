@@ -18,6 +18,7 @@ class PermissionGroupMembership(models.Model):
         return f"{self.user.display_name}"
 
 class PermissionModule(models.TextChoices):
+    ARMA = "arma", "ARMA"
     ORBAT = "orbat", "ORBAT"
     EVENTS = "events", "EVENTS"
     TRAINING = "training", "TRAINING"

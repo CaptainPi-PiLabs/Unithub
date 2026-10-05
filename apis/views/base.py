@@ -36,6 +36,9 @@ class BaseAPIView(APIView):
             self._object = obj
             self.check_object_permissions(request, obj)
 
+class ArmaAPIView(BaseAPIView):
+    module = PermissionModule.ARMA
+
 class OrbatAPIView(BaseAPIView):
     module = PermissionModule.ORBAT
 

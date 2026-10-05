@@ -30,7 +30,7 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(display_name, username, email, password, **extra_fields)
 
 class UnitMembership(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="unit_memberships")
     start_date = models.DateField(default=timezone.now)
     end_date = models.DateField(null=True, blank=True)
 
