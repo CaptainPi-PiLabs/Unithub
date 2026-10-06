@@ -30,7 +30,7 @@
                   {{ applicant.get_status_display }}
                 </div>
                 <div class="text-sm text-base-muted mb-4">
-                  Submitted {{ applicant.date|date:"M j, Y" }}
+                  Submitted {{ applicant.date|date:"M j, Y" }} ({{ applicant.date|timesince }} ago)
                 </div>
                   {% if unit_application_can_manage %}
                 <a href="{% url 'orbat_applications_onboarding' applicant.id %}"

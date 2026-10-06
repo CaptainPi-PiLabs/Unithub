@@ -19,7 +19,7 @@
                         <p><b>Discord Name:</b> {{ focused_application.external_account.username }}</p>
                     </div>
                     <div class="text-sm text-base-muted">
-                        Submitted {{ focused_application.date|date:"M j, Y" }}
+                        Submitted {{ focused_application.date|date:"M j, Y" }} ({{ focused_application.date|timesince }} ago)
                     </div>
                 </div>
             <div class="flex items-center justify-between">
