@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import redirect, get_object_or_404
 from django.urls import reverse
@@ -12,6 +13,7 @@ from django.utils.html import format_html
 from common.views import UnitHubTemplateView, UnitHubUpdateView
 from events.helpers import create_training_event
 from events.models import Event, EventAssignment, EventGroup
+from external_auth.models import SteamAccount
 from orbat.enums import OrbatActions
 from orbat.forms import UnitApplicationQuestionnaireForm
 from orbat.models.unit import UnitApplication, UnitApplicationQuestionnaire
@@ -48,6 +50,10 @@ ACTION_MAP = {
     "assign_event": {
         "perm": OrbatActions.MANAGE_UNIT_APPLICATIONS,
         "handler": "_assign_event",
+    },
+    "associate_steam_account": {
+        "perm": OrbatActions.MANAGE_UNIT_APPLICATIONS,
+        "handler": "_associate_steam_account",
     }
 }
 
@@ -91,9 +97,19 @@ class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
                 context["questionnaire_age"] = (timezone.now().year - questionnaire.birth_year)
             else:
                 context["questionnaire_age"] = None
-            context["questionnaire_complete"] = (
-                questionnaire.is_complete() if questionnaire else False
+
+            questionnaire_complete = questionnaire.is_complete() if questionnaire else False
+            context["questionnaire_complete"] = questionnaire_complete
+
+            context["linked_steam_account"] = (
+                SteamAccount.objects.filter(user=app.user).first()
+                if app.user
+                else None
             )
+
+            context["available_steam_accounts"] = SteamAccount.objects.filter(
+                user__isnull=True,
+            ).order_by("username")
 
             other_qs = (
                 UnitApplication.objects.filter(closed=False)
@@ -152,7 +168,8 @@ class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
         user = self.request.user
         context["can_manage"] = has_orbat_permission(user, OrbatActions.MANAGE_UNIT_APPLICATIONS)
         context["can_deny"] = has_orbat_permission(user, OrbatActions.DENY_UNIT_APPLICATIONS)
-        context["can_approve"] = app is not None and app.user is not None and has_orbat_permission(user, OrbatActions.APPROVE_UNIT_APPLICATIONS)
+        context["can_approve"] = has_orbat_permission(user, OrbatActions.APPROVE_UNIT_APPLICATIONS)
+        context["is_approvable"] = app is not None and app.user is not None and SteamAccount.objects.filter(user=app.user).exists() and questionnaire_complete
 
         return context
 
@@ -240,6 +257,54 @@ class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
         display_name = user.display_name
         user.delete()
         self.add_message(f"User {display_name} deleted.", level=messages.SUCCESS)
+
+    def _associate_steam_account(self, request, app, *args, **kwargs):
+        if not app.user:
+            self.add_message(
+                "Create a user before associating a Steam account.",
+                level=messages.ERROR,
+            )
+            return
+
+        steam_account_id = request.POST.get("steam_account_id")
+
+        if not steam_account_id:
+            self.add_message(
+                "Select a Steam account.",
+                level=messages.ERROR,
+            )
+            return
+
+        try:
+            with transaction.atomic():
+                steam_account = (
+                    SteamAccount.objects
+                    .select_for_update()
+                    .get(pk=steam_account_id)
+                )
+
+                if steam_account.user_id is not None:
+                    self.add_message(
+                        "This Steam account is already associated with a user.",
+                        level=messages.ERROR,
+                    )
+                    return
+
+                steam_account.user = app.user
+                steam_account.save(update_fields=["user"])
+
+        except (SteamAccount.DoesNotExist, ValueError):
+            self.add_message(
+                "The selected Steam account is invalid.",
+                level=messages.ERROR,
+            )
+            return
+
+        self.add_message(
+            f"Steam account {steam_account.username} associated with "
+            f"{app.user.display_name}.",
+            level=messages.SUCCESS,
+        )
 
     def _create_event(self, request, *args, **kwargs):
         bct = Qualification.get_bct()
@@ -341,6 +406,7 @@ class UnitApplicationOnboarding(ORBATContextMixin, UnitHubTemplateView):
         self.add_message(f"Application updated", level=messages.SUCCESS)
 
     def _approve(self, request, app, *args, **kwargs):
+        print("Approving application")
         if not app.user:
             self.add_message("Cannot approve an application without a user.", level=messages.ERROR)
             return None

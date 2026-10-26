@@ -48,44 +48,101 @@
             </div>
 
             <div class="border-t border-base-border pt-4">
-    <div class="flex items-start justify-between mb-2">
+                <div class="flex items-start justify-between mb-2">
 
-        <div>
-            <h3 class="font-semibold">Questionnaire</h3>
+                    <div>
+                        <h3 class="font-semibold">Questionnaire</h3>
 
-            {% if questionnaire_complete %}
-                <div class="text-xs font-medium uppercase tracking-wide text-green-500">
-                    Completed
+                        {% if questionnaire_complete %}
+                            <div class="text-xs font-medium uppercase tracking-wide text-green-500">
+                                Completed
+                            </div>
+                        {% else %}
+                            <div class="text-xs font-medium uppercase tracking-wide text-yellow-500">
+                                Pending
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button
+                            @click="openPanel('questionnaire')"
+                            class="rounded-lg bg-base-accent px-3 py-1.5 text-sm font-medium">
+                            View
+                        </button>
+
+                        <a
+                            href="{% url 'orbat_applications_onboarding_questionare' focused_application.pk %}"
+                            class="rounded-lg bg-green-600 px-3 py-1.5 text-white text-sm font-medium">
+                            Edit
+                        </a>
+                    </div>
+
                 </div>
-            {% else %}
-                <div class="text-xs font-medium uppercase tracking-wide text-yellow-500">
-                    Pending
+            </div>
+
+            {% if focused_application.user %}
+            <div class="border-t border-base-border pt-4 mt-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold">Steam Account</h3>
+
+                    {% if linked_steam_account %}
+                        <span class="text-xs text-green-600">Linked</span>
+                    {% else %}
+                        <span class="text-xs text-base-muted">Not linked</span>
+                    {% endif %}
                 </div>
-            {% endif %}
-        </div>
 
-        <div class="flex gap-2">
-            <button
-                @click="openPanel('questionnaire')"
-                class="rounded-lg bg-base-accent px-3 py-1.5 text-sm font-medium">
-                View
-            </button>
+                {% if linked_steam_account %}
+                    <div class="rounded-lg border border-base-border p-3">
+                        <div class="font-medium">
+                            {{ linked_steam_account.username }}
+                        </div>
+                    </div>
+                {% elif can_manage %}
+                    <form method="post" class="flex flex-col sm:flex-row gap-2">
+                        {% csrf_token %}
+                        <input
+                            type="hidden"
+                            name="action"
+                            value="associate_steam_account"
+                        >
 
-            <a
-                href="{% url 'orbat_applications_onboarding_questionare' focused_application.pk %}"
-                class="rounded-lg bg-green-600 px-3 py-1.5 text-white text-sm font-medium">
-                Edit
-            </a>
-        </div>
+                        <select
+                            name="steam_account_id"
+                            required
+                            class="flex-1 rounded-lg border border-base-border
+                                   bg-base-surface px-3 py-2"
+                        >
+                            <option value="">-- Select discovered Steam account --</option>
+                            {% for steam in available_steam_accounts %}
+                                <option value="{{ steam.pk }}">
+                                    {{ steam.username }}
+                                </option>
+                            {% endfor %}
+                        </select>
 
-    </div>
-</div>
+                        <button
+                            type="submit"
+                            class="rounded-lg bg-green-600 px-4 py-2
+                                   text-white text-sm font-medium hover:opacity-90"
+                            {% if not available_steam_accounts %}disabled{% endif %}
+                        >
+                            Link Steam Account
+                        </button>
+                    </form>
 
-            <div>
-                <h3 class="font-semibold">Contact History</h3>
-                <p class="text-sm text-base-muted">
-                    {{ focused_application.reached_out }}
-                </p>
+                    {% if not available_steam_accounts %}
+                        <p class="text-xs text-base-muted mt-2">
+                            No unlinked Steam accounts have been discovered.
+                            Have the applicant connect to the training server first.
+                        </p>
+                    {% endif %}
+                {% else %}
+                    <p class="text-sm text-base-muted italic">
+                        No Steam account linked.
+                    </p>
+                {% endif %}
             </div>
 
             <div class="border-t border-base-border pt-4">
@@ -132,6 +189,7 @@
                     {% endif %}
                 {% endif %}
             </div>
+            {% endif %}
 
             <div class="border-t border-base-border pt-4 mt-4">
                 <div class="flex justify-end gap-3">
@@ -144,20 +202,18 @@
                     {% endif %}
 
                     {% if can_approve %}
-                    <button
-                        @click="openPanel('approve')"
-                        class="rounded-lg px-4 py-2 text-base-text text-sm font-medium transition
-                               {% if questionnaire_complete %}
-                                   bg-green-600 hover:opacity-90
-                               {% else %}
-                                   bg-gray-500 opacity-60 cursor-not-allowed
-                               {% endif %}"
-                        {% if not questionnaire_complete %}
-                            disabled
-                        {% endif %}
-                    >
-                        Approve / Passed
-                    </button>
+                        <button
+                            @click="openPanel('approve')"
+                            class="rounded-lg px-4 py-2 text-base-text text-sm font-medium transition
+                                   {% if is_approvable %}
+                                       bg-green-600 hover:opacity-90
+                                   {% else %}
+                                       bg-gray-500 opacity-60 cursor-not-allowed
+                                   {% endif %}"
+                            {% if not is_approvable %} disabled {% endif %}
+                        >
+                            Approve / Passed
+                        </button>
                     {% endif %}
                 </div>
             </div>

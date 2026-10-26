@@ -66,6 +66,12 @@ class UnitApplication(ApplicationBase):
         if not self.user:
             raise ValidationError("Cannot approve application without a user.")
 
+        from external_auth.models import SteamAccount
+        if not SteamAccount.objects.filter(user=self.user).exists():
+            raise ValidationError(
+                "Cannot approve application without a linked Steam account."
+            )
+
         if not self.questionnaire or not self.questionnaire.is_complete():
             raise ValidationError("Questionnaire is incomplete.")
         from users.models import UserStatus
@@ -79,7 +85,7 @@ class UnitApplication(ApplicationBase):
             log_admin_addition(actioned_by, membership, "Created during application approval")
 
         # Close application
-        self.status = self.STATUS_PASSED
+        self.status = self.STATUS_APPROVED
         self.closed = True
         self.actioned_by = actioned_by or self.actioned_by
         self.processed_date = timezone.now()
